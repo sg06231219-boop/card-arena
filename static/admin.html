@@ -3,665 +3,818 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>卡牌游戏管理后台 - SG智能建站</title>
+<title>卡牌竞技场 - 管理后台</title>
 <style>
-:root{--bg:#060818;--bg2:#0d1126;--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.08);--text:#e2e8f0;--muted:#64748b;--accent:#7c5cfa;--cyan:#22d3ee;--green:#10b981;--red:#ef4444;--gold:#fbbf24}
+:root{
+--bg:#060818;--bg2:#0d1126;--bg3:#131838;
+--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.08);
+--text:#e2e8f0;--muted:#64748b;
+--accent:#7c5cfa;--cyan:#22d3ee;--green:#10b981;--red:#ef4444;--orange:#f59e0b;--gold:#fbbf24;
+--fire:#f97316;--ice:#38bdf8;--thunder:#a855f7;--nature:#22c55e;
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(124,92,250,.08),transparent)}
-.bg::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,.03) 1px,transparent 0);background-size:30px 30px}
-nav{position:sticky;top:0;z-index:1000;background:rgba(6,8,24,.8);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 20px}
-.nav-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:52px}
-.nav-logo{font-size:16px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
-.container{max-width:900px;margin:0 auto;padding:20px}
-h1{font-size:1.5rem;margin-bottom:16px}
-h2{font-size:1.1rem;color:var(--cyan);margin:20px 0 10px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin:12px 0;backdrop-filter:blur(12px)}
-label{display:block;margin:8px 0 4px;color:var(--muted);font-size:13px}
-input,select,textarea{width:100%;background:rgba(0,0,0,.2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:10px;font-size:14px}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.btn{padding:10px 24px;border-radius:12px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:12px}
+.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(124,92,250,.1),transparent)}
+
+.header{display:flex;align-items:center;justify-content:space-between;max-width:900px;margin:0 auto 16px;gap:12px;flex-wrap:wrap}
+.header h1{font-size:1.3rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header a{font-size:12px;color:var(--accent);text-decoration:none;padding:6px 14px;border:1px solid var(--accent);border-radius:8px;transition:all .2s}
+.header a:hover{background:rgba(124,92,250,.1)}
+
+.container{max-width:900px;margin:0 auto}
+
+.tab-bar{display:flex;gap:3px;margin:0 0 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:3px;flex-wrap:wrap}
+.tab-btn{flex:1;min-width:100px;padding:8px 12px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);background:transparent;transition:all .2s;white-space:nowrap}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:#fff;background:linear-gradient(135deg,var(--accent),var(--cyan))}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin:8px 0}
+.panel-title{font-size:14px;font-weight:700;color:var(--cyan);margin-bottom:12px}
+
+/* Card config table */
+.card-config-table{width:100%;border-collapse:collapse;font-size:12px}
+.card-config-table th,.card-config-table td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)}
+.card-config-table th{color:var(--muted);font-size:11px;text-transform:uppercase}
+.card-config-table td input{width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px}
+.card-config-table td input:focus{outline:none;border-color:var(--accent)}
+.card-config-table tr:hover{background:rgba(255,255,255,.02)}
+.card-icon-cell{font-size:1.2rem}
+.element-badge{padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600}
+.element-badge.fire{background:rgba(249,115,22,.15);color:var(--fire)}
+.element-badge.ice{background:rgba(56,189,248,.15);color:var(--ice)}
+.element-badge.thunder{background:rgba(168,85,247,.15);color:var(--thunder)}
+.element-badge.nature{background:rgba(34,197,94,.15);color:var(--nature)}
+.element-badge.neutral{background:rgba(100,116,139,.15);color:var(--muted)}
+
+/* Level config */
+.level-config-table{width:100%;border-collapse:collapse;font-size:12px}
+.level-config-table th,.level-config-table td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)}
+.level-config-table th{color:var(--muted);font-size:11px}
+.level-config-table td input{width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px}
+.level-config-table td select{padding:4px 6px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px}
+
+/* Upload area */
+.upload-area{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all .2s}
+.upload-area:hover{border-color:var(--accent);background:rgba(124,92,250,.04)}
+.upload-area.dragover{border-color:var(--green);background:rgba(16,185,129,.04)}
+.upload-icon{font-size:2rem;margin-bottom:8px}
+.upload-text{font-size:13px;color:var(--muted)}
+
+/* Custom card form */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.form-item{display:flex;flex-direction:column;gap:3px}
+.form-item label{font-size:11px;color:var(--muted);font-weight:600}
+.form-item input,.form-item select,.form-item textarea{padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:inherit}
+.form-item input:focus,.form-item select:focus,.form-item textarea:focus{outline:none;border-color:var(--accent)}
+.form-item textarea{resize:vertical;min-height:40px}
+
+.btn{padding:8px 20px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
 .btn-pri{background:linear-gradient(135deg,var(--accent),var(--cyan));color:#fff}
-.btn-pri:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(124,92,250,.3)}
+.btn-pri:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(124,92,250,.3)}
 .btn-sec{background:var(--card);color:var(--text);border:1px solid var(--border)}
 .btn-sec:hover{border-color:var(--accent)}
-.btn-sm{padding:6px 14px;font-size:12px}
-/* 图片上传 */
-.upload-zone{border:2px dashed var(--border);border-radius:16px;padding:32px;text-align:center;cursor:pointer;transition:all .3s;position:relative}
-.upload-zone:hover{border-color:var(--accent);background:rgba(124,92,250,.04)}
-.upload-zone.dragover{border-color:var(--cyan);background:rgba(34,211,238,.06)}
-.upload-zone .icon{font-size:2.5rem;margin-bottom:8px}
-.upload-zone .hint{color:var(--muted);font-size:14px}
-.upload-preview{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
-.preview-item{width:80px;height:80px;border-radius:12px;border:2px solid var(--border);overflow:hidden;position:relative;cursor:pointer;transition:all .2s}
-.preview-item:hover{border-color:var(--accent);transform:scale(1.05)}
-.preview-item img{width:100%;height:100%;object-fit:cover}
-.preview-item .del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(239,68,68,.8);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .2s}
-.preview-item:hover .del{opacity:1}
-/* 角色列表 */
-.char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin:12px 0}
-.char-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:all .2s;cursor:pointer}
-.char-card:hover{border-color:var(--accent);transform:translateY(-2px)}
-.char-card .char-img{width:100%;aspect-ratio:1;object-fit:cover;background:var(--bg)}
-.char-card .char-info{padding:8px 10px}
-.char-card .char-name{font-size:13px;font-weight:600}
-.char-card .char-role{font-size:11px;color:var(--muted)}
-/* 统计 */
-.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin:12px 0}
-.stat{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
-.stat .val{font-size:1.8rem;font-weight:800;font-family:monospace;color:var(--accent)}
-.stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
-/* 配置 */
-.config-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
-.config-row:last-child{border-bottom:none}
-.config-row .name{font-size:14px}
-.config-row .val{font-size:13px;color:var(--cyan);font-weight:600}
-.toggle{width:40px;height:22px;border-radius:11px;background:var(--border);position:relative;cursor:pointer;transition:background .3s}
-.toggle.on{background:var(--green)}
-.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .3s}
-.toggle.on::after{left:20px}
-.footer{text-align:center;padding:24px;color:var(--muted);font-size:.8rem}
-.footer a{color:var(--accent);text-decoration:none}
-@media(max-width:600px){.row{grid-template-columns:1fr}.char-grid{grid-template-columns:repeat(2,1fr)}}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+
+.controls{display:flex;gap:8px;justify-content:center;margin:12px 0;flex-wrap:wrap}
+
+/* Custom card list */
+.custom-card-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:8px 0}
+.custom-card-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center;font-size:11px;position:relative}
+.custom-card-item .cci-icon{font-size:1.5rem}
+.custom-card-item .cci-name{font-weight:700;margin-top:4px}
+.custom-card-item .cci-info{font-size:9px;color:var(--muted);margin-top:2px}
+.custom-card-item .cci-delete{position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+
+/* Batch import */
+.batch-area{width:100%;min-height:120px;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:12px;font-family:monospace;resize:vertical}
+.batch-hint{font-size:11px;color:var(--muted);margin-top:6px}
+
+/* AI generate */
+.ai-prompt{width:100%;min-height:60px;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:12px;resize:vertical;font-family:inherit}
+.ai-result{margin-top:8px;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;font-size:12px;display:none}
+.ai-result.active{display:block}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 24px;background:var(--bg2);border:1px solid var(--accent);border-radius:10px;font-size:13px;z-index:3000;animation:toastIn .3s ease;display:none}
+.toast.active{display:block}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* Preview cards */
+.preview-card{display:inline-flex;flex-direction:column;align-items:center;padding:8px;margin:4px;border:2px solid;border-radius:10px;font-size:11px;min-width:70px}
+.preview-card.fire{border-color:var(--fire);background:linear-gradient(135deg,rgba(249,115,22,.12),rgba(249,115,22,.04))}
+.preview-card.ice{border-color:var(--ice);background:linear-gradient(135deg,rgba(56,189,248,.12),rgba(56,189,248,.04))}
+.preview-card.thunder{border-color:var(--thunder);background:linear-gradient(135deg,rgba(168,85,247,.12),rgba(168,85,247,.04))}
+.preview-card.nature{border-color:var(--nature);background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04))}
+.preview-card.neutral{border-color:var(--muted);background:linear-gradient(135deg,rgba(100,116,139,.12),rgba(100,116,139,.04))}
+
+@media(max-width:600px){
+.form-grid{grid-template-columns:1fr}
+.card-config-table,.level-config-table{font-size:10px}
+.card-config-table th,.card-config-table td,.level-config-table th,.level-config-table td{padding:3px 4px}
+}
 </style>
 </head>
 <body>
-<nav><div class="nav-inner">
-<a href="/" class="nav-logo">⚡ SG工具</a>
-<div style="display:flex;gap:10px">
-<a href="/tools/card-game" style="font-size:13px;color:var(--muted);text-decoration:none">🃏 返回游戏</a>
-<a href="/admin" style="font-size:13px;color:var(--muted);text-decoration:none">🏢 主后台</a>
-</div>
-</div></nav>
 <div class="bg"></div>
+
+<div class="header">
+<h1>🏢 卡牌竞技场 · 管理后台</h1>
+<a href="index.html">← 返回游戏</a>
+</div>
+
 <div class="container">
-
-<h1>🏢 卡牌游戏管理后台</h1>
-
-<div class="stats" id="stats">
-<div class="stat"><div class="val" id="stat-chars">0</div><div class="lbl">角色数</div></div>
-<div class="stat"><div class="val" id="stat-games">0</div><div class="lbl">游戏场次</div></div>
-<div class="stat"><div class="val" id="stat-wins">0</div><div class="lbl">胜利次数</div></div>
-<div class="stat"><div class="val" id="stat-level">1</div><div class="lbl">最高关卡</div></div>
+<div class="tab-bar">
+<button class="tab-btn active" data-tab="cards">🃏 卡牌管理</button>
+<button class="tab-btn" data-tab="levels">🏰 关卡配置</button>
+<button class="tab-btn" data-tab="custom">✨ 自定义卡牌</button>
+<button class="tab-btn" data-tab="batch">📦 批量导入</button>
+<button class="tab-btn" data-tab="ai">🤖 AI生成</button>
+<button class="tab-btn" data-tab="data">💾 数据管理</button>
 </div>
 
-<h2>🎨 AI生成角色卡面</h2>
-<div class="card">
-<div style="display:grid;grid-template-columns:1fr 140px;gap:12px">
-<div>
-<label>角色描述（如：火焰法师，红发女性，手持法杖）</label>
-<textarea id="ai-prompt" rows="2" placeholder="描述角色外貌、职业、特征..." style="resize:vertical;font-size:14px"></textarea>
+<!-- ========== Card Balance Config ========== -->
+<div class="tab-panel active" id="tab-cards">
+<div class="panel">
+<div class="panel-title">⚖️ 卡牌平衡性配置</div>
+<p style="font-size:12px;color:var(--muted);margin-bottom:10px">调整每张卡牌的费用和伤害/数值，修改后自动保存到本地存储。</p>
+<table class="card-config-table">
+<thead><tr><th>图标</th><th>名称</th><th>元素</th><th>类型</th><th>稀有度</th><th>费用</th><th>伤害/数值</th><th>默认费用</th><th>默认伤害</th></tr></thead>
+<tbody id="card-config-body"></tbody>
+</table>
+<div class="controls">
+<button class="btn btn-pri" onclick="saveCardConfig()">💾 保存配置</button>
+<button class="btn btn-sec" onclick="resetCardConfig()">🔄 重置为默认</button>
 </div>
-<div>
-<label>风格</label>
-<select id="ai-style">
-<option value="fantasy">奇幻</option>
-<option value="dark">暗黑</option>
-<option value="anime">二次元</option>
-<option value="realistic">写实</option>
-<option value="pixel">像素风</option>
+</div>
+</div>
+
+<!-- ========== Level Config ========== -->
+<div class="tab-panel" id="tab-levels">
+<div class="panel">
+<div class="panel-title">🏰 关卡配置</div>
+<p style="font-size:12px;color:var(--muted);margin-bottom:10px">自定义每个关卡的敌人名称、HP和AI等级。</p>
+<table class="level-config-table">
+<thead><tr><th>关卡</th><th>敌人名称</th><th>头像</th><th>HP</th><th>AI等级</th><th>描述</th></tr></thead>
+<tbody id="level-config-body"></tbody>
+</table>
+<div class="controls">
+<button class="btn btn-pri" onclick="saveLevelConfig()">💾 保存配置</button>
+<button class="btn btn-sec" onclick="resetLevelConfig()">🔄 重置为默认</button>
+</div>
+</div>
+</div>
+
+<!-- ========== Custom Card Creator ========== -->
+<div class="tab-panel" id="tab-custom">
+<div class="panel">
+<div class="panel-title">✨ 创建自定义卡牌</div>
+<div class="form-grid">
+<div class="form-item">
+<label>卡牌名称</label>
+<input type="text" id="cc-name" placeholder="如：地狱烈焰" maxlength="10">
+</div>
+<div class="form-item">
+<label>图标 (emoji)</label>
+<input type="text" id="cc-icon" placeholder="🔥" maxlength="4">
+</div>
+<div class="form-item">
+<label>费用</label>
+<input type="number" id="cc-cost" value="3" min="0" max="10">
+</div>
+<div class="form-item">
+<label>类型</label>
+<select id="cc-type">
+<option value="attack">攻击</option>
+<option value="shield">防御</option>
+<option value="heal">治疗</option>
+<option value="energy">能量</option>
+<option value="buff">增益</option>
+<option value="debuff">减益</option>
 </select>
 </div>
-</div>
-<div style="display:flex;gap:10px;margin-top:10px;align-items:center">
-<button class="btn btn-pri" id="ai-gen-btn" onclick="generateArt()">✨ 生成</button>
-<label style="margin:0;color:var(--muted);font-size:13px">数量</label>
-<select id="ai-count" style="width:80px">
-<option value="1">1张</option>
-<option value="2">2张</option>
-<option value="3" selected>3张</option>
-<option value="4">4张</option>
+<div class="form-item">
+<label>元素</label>
+<select id="cc-element">
+<option value="fire">🔥 火</option>
+<option value="ice">❄️ 冰</option>
+<option value="thunder">⚡ 雷</option>
+<option value="nature">🌿 自然</option>
+<option value="neutral">⚪ 中性</option>
 </select>
 </div>
-<div id="ai-loading" style="display:none;margin-top:14px;text-align:center;padding:20px">
-<div style="font-size:2rem">⏳</div>
-<div style="color:var(--muted);font-size:13px;margin-top:6px">AI正在创作中，请稍候...</div>
-</div>
-<div id="ai-result" style="display:none;margin-top:14px">
-<label style="margin-bottom:8px">生成结果（点击选用）</label>
-<div id="ai-result-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px"></div>
-</div>
-</div>
-
-<h2>📎 导入角色图片</h2>
-<div class="card">
-<div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
-<div class="icon">📷</div>
-<div class="hint">点击或拖拽图片到此处上传</div>
-<div style="font-size:11px;color:var(--muted);margin-top:4px">支持 PNG/JPG/WebP，建议正方形，最大个</div>
-</div>
-<input type="file" id="file-input" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files)">
-
-<div class="row" style="margin-top:12px">
-<div>
-<label>角色名称</label>
-<input type="text" id="char-name" placeholder="如: 炎之女王">
-</div>
-<div>
-<label>角色职业</label>
-<select id="char-role">
-<option value="mage">法师</option>
-<option value="warrior">战士</option>
-<option value="archer">弓箭手</option>
-<option value="healer">治疗者</option>
-<option value="summoner">召唤师</option>
-<option value="boss">BOSS</option>
+<div class="form-item">
+<label>稀有度</label>
+<select id="cc-rarity">
+<option value="common">普通</option>
+<option value="rare">稀有</option>
+<option value="epic">史诗</option>
+<option value="legend">传说</option>
 </select>
 </div>
+<div class="form-item">
+<label>伤害/数值</label>
+<input type="number" id="cc-dmg" value="5" min="0" max="50">
 </div>
-<div style="margin-top:12px">
-<label>角色描述</label>
-<textarea id="char-desc" rows="2" placeholder="简要描述角色背景" style="resize:vertical"></textarea>
-</div>
-<div class="row" style="margin-top:12px">
-<div>
-<label>HP</label>
-<input type="number" id="char-hp" value="30" min="20" max="100">
-</div>
-<div>
-<label>AI等级</label>
-<select id="char-ai">
-<option value="1">基础AI</option>
-<option value="2">智能AI</option>
-<option value="3">高级AI</option>
-<option value="4">大师AI</option>
-<option value="5">最终BOSS</option>
-</select>
+<div class="form-item" style="grid-column:1/-1">
+<label>描述</label>
+<textarea id="cc-desc" placeholder="如：造成5点火属性伤害">造成5点伤害</textarea>
 </div>
 </div>
-<button class="btn btn-pri" style="margin-top:12px;width:100%" onclick="saveCharacters()">💾 保存角色配置</button>
+<div class="controls">
+<button class="btn btn-pri" onclick="addCustomCard()">➕ 添加卡牌</button>
+<button class="btn btn-sec" onclick="previewCustomCard()">👁️ 预览</button>
+</div>
+<div id="custom-preview" style="text-align:center;margin:8px 0"></div>
 </div>
 
-<h2>🔗 图片URL批量导入</h2>
-<div class="card">
-<label>图片URL列表（每行一个URL）</label>
-<textarea id="batch-urls" rows="6" placeholder="https://example.com/image1.png&#10;https://example.com/image2.jpg&#10;https://example.com/image3.webp" style="resize:vertical;font-family:monospace;font-size:12px"></textarea>
-<div class="row" style="margin-top:12px">
-<div>
-<label>角色名前缀（自动编号）</label>
-<input type="text" id="batch-prefix" placeholder="如: 英雄 → 英雄1, 英雄2...">
-</div>
-<div>
-<label>角色职业（统一）</label>
-<select id="batch-role">
-<option value="mage">法师</option>
-<option value="warrior">战士</option>
-<option value="archer">弓箭手</option>
-<option value="healer">治疗者</option>
-<option value="summoner">召唤师</option>
-<option value="boss">BOSS</option>
-</select>
-</div>
-</div>
-<div class="row" style="margin-top:12px">
-<div>
-<label>HP（统一）</label>
-<input type="number" id="batch-hp" value="30" min="20" max="100">
-</div>
-<div>
-<label>AI等级（统一）</label>
-<select id="batch-ai">
-<option value="1">基础AI</option>
-<option value="2">智能AI</option>
-<option value="3">高级AI</option>
-<option value="4">大师AI</option>
-<option value="5">最终BOSS</option>
-</select>
-</div>
-</div>
-<button class="btn btn-pri" style="margin-top:14px;width:100%" id="batch-btn" onclick="batchImport()">🚀 开始批量导入</button>
-<div id="batch-progress" style="margin-top:12px;display:none">
-<div style="background:rgba(0,0,0,.2);border-radius:10px;padding:12px">
-<div style="display:flex;justify-content:space-between;margin-bottom:6px">
-<span id="batch-status" style="font-size:13px;color:var(--cyan)">准备中...</span>
-<span id="batch-count" style="font-size:13px;color:var(--muted)">0/0</span>
-</div>
-<div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
-<div id="batch-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--cyan));transition:width .3s"></div>
-</div>
-</div>
-</div>
-<div id="batch-result" style="margin-top:12px;display:none"></div>
-</div>
-
-<h2>📅 已导入角色</h2>
-<div class="card">
-<div class="char-grid" id="char-grid">
-<div style="color:var(--muted);grid-column:1/-1;text-align:center;padding:20px">暂无角色，请导入图片</div>
+<div class="panel">
+<div class="panel-title">📋 已创建的自定义卡牌</div>
+<div class="custom-card-list" id="custom-card-list"></div>
 </div>
 </div>
 
-<h2>⚙️ 游戏配置</h2>
-<div class="card">
-<div class="config-row">
-<span class="name">开启暴击系统</span>
-<div class="toggle on" onclick="this.classList.toggle('on')"></div>
+<!-- ========== Batch Import ========== -->
+<div class="tab-panel" id="tab-batch">
+<div class="panel">
+<div class="panel-title">📦 批量导入卡牌</div>
+<p style="font-size:12px;color:var(--muted);margin-bottom:8px">每行一张卡牌，格式：名称,图标,费用,类型,元素,稀有度,伤害/数值,描述</p>
+<textarea class="batch-area" id="batch-input" placeholder="火焰风暴,🔥,4,attack,fire,epic,12,造成12点火伤
+寒冰护盾,🛡️,3,shield,ice,rare,10,+10护甲
+雷暴,🌩️,5,attack,thunder,legend,15,15点雷伤"></textarea>
+<div class="batch-hint">类型: attack/shield/heal/energy/buff/debuff · 元素: fire/ice/thunder/nature/neutral · 稀有度: common/rare/epic/legend</div>
+<div class="controls">
+<button class="btn btn-pri" onclick="batchImport()">📥 导入</button>
+<button class="btn btn-sec" onclick="document.getElementById('batch-input').value=''">🧹 清空</button>
 </div>
-<div class="config-row">
-<span class="name">开启闪避系统</span>
-<div class="toggle on" onclick="this.classList.toggle('on')"></div>
 </div>
-<div class="config-row">
-<span class="name">开启元素克制</span>
-<div class="toggle on" onclick="this.classList.toggle('on')"></div>
+<div class="panel">
+<div class="panel-title">📤 导出当前卡牌</div>
+<div class="controls">
+<button class="btn btn-sec" onclick="exportCards()">📋 导出全部卡牌为文本</button>
 </div>
-<div class="config-row">
-<span class="name">开启连击系统</span>
-<div class="toggle on" onclick="this.classList.toggle('on')"></div>
-</div>
-<div class="config-row">
-<span class="name">开启自定义角色</span>
-<div class="toggle" onclick="this.classList.toggle('on')"></div>
-</div>
-<div class="config-row">
-<span class="name">初始生命值</span>
-<span class="val">30 HP</span>
-</div>
-<div class="config-row">
-<span class="name">最大能量上限</span>
-<span class="val">10 MP</span>
+<textarea class="batch-area" id="batch-output" style="margin-top:8px" readonly></textarea>
 </div>
 </div>
 
-<h2>📊 游戏数据</h2>
-<div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-<strong>对战记录</strong>
-<button class="btn btn-sec btn-sm" onclick="clearData()">🗑️ 清空</button>
+<!-- ========== AI Generate ========== -->
+<div class="tab-panel" id="tab-ai">
+<div class="panel">
+<div class="panel-title">🤖 AI生成卡牌</div>
+<p style="font-size:12px;color:var(--muted);margin-bottom:8px">输入卡牌主题描述，AI将自动生成卡牌属性。</p>
+<textarea class="ai-prompt" id="ai-prompt" placeholder="例如：创建一张强力的火系传说卡牌，主题是地狱之火，造成大量伤害但有较高费用"></textarea>
+<div class="controls">
+<button class="btn btn-pri" onclick="aiGenerate()">✨ AI生成</button>
+<button class="btn btn-sec" onclick="document.getElementById('ai-prompt').value=''">🧹 清空</button>
 </div>
-<div id="game-log" style="max-height:200px;overflow-y:auto;font-size:12px;font-family:monospace;line-height:1.8;background:rgba(0,0,0,.2);border-radius:10px;padding:12px">
-<div style="color:var(--muted)">暂无对战记录</div>
+<div class="ai-result" id="ai-result"></div>
+</div>
+<div class="panel">
+<div class="panel-title">💡 快速模板</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-sec" onclick="useTemplate('fire')">🔥 火系攻击</button>
+<button class="btn btn-sec" onclick="useTemplate('ice')">❄️ 冰系控制</button>
+<button class="btn btn-sec" onclick="useTemplate('thunder')">⚡ 雷系爆发</button>
+<button class="btn btn-sec" onclick="useTemplate('nature')">🌿 自然恢复</button>
+<button class="btn btn-sec" onclick="useTemplate('legend')">🌟 传说卡牌</button>
+</div>
 </div>
 </div>
 
-<div class="footer">
-<p>🏢 卡牌游戏管理后台 · <a href="/tools/card-game">返回游戏</a> · <a href="/">返回首页</a></p>
+<!-- ========== Data Management ========== -->
+<div class="tab-panel" id="tab-data">
+<div class="panel">
+<div class="panel-title">💾 数据管理</div>
+<p style="font-size:12px;color:var(--muted);margin-bottom:10px">导出/导入/重置游戏数据。所有数据存储在浏览器localStorage中。</p>
+<div class="controls" style="flex-direction:column;gap:10px">
+<button class="btn btn-pri" onclick="exportAllData()" style="width:200px">📤 导出全部数据</button>
+<button class="btn btn-sec" onclick="importData()" style="width:200px">📥 导入数据</button>
+<button class="btn btn-danger" onclick="resetAllData()" style="width:200px">🗑️ 重置所有数据</button>
 </div>
 </div>
+<div class="panel">
+<div class="panel-title">📊 数据概览</div>
+<div id="data-overview" style="font-size:12px;line-height:2"></div>
+</div>
+<div class="panel">
+<div class="panel-title">📋 导入数据</div>
+<textarea class="batch-area" id="import-area" placeholder='粘贴导出的JSON数据...'></textarea>
+<div class="controls">
+<button class="btn btn-pri" onclick="doImport()">📥 确认导入</button>
+</div>
+</div>
+</div>
+
+</div><!-- /container -->
+
+<div class="toast" id="toast"></div>
 
 <script>
-var characters = JSON.parse(localStorage.getItem('card_characters') || '[]');
-var gameStats = JSON.parse(localStorage.getItem('card_game_stats') || '{"games":0,"wins":0,"maxLevel":1}');
-var pendingImages = [];
-var aiGeneratedImages = []; // AI生成的图片URL列表
+// ========== Card Pool (same as game) ==========
+var CARD_POOL = [
+  {id:'fire_bolt',name:'火焰箭',icon:'🔥',cost:2,type:'attack',element:'fire',dmg:5,desc:'5点火伤',rarity:'common'},
+  {id:'ice_shard',name:'冰锥术',icon:'❄️',cost:2,type:'attack',element:'ice',dmg:5,desc:'5点冰伤',rarity:'common'},
+  {id:'thunder',name:'闪电术',icon:'⚡',cost:3,type:'attack',element:'thunder',dmg:8,desc:'8点雷伤',rarity:'rare'},
+  {id:'vine_whip',name:'藤蔓鞭',icon:'🌿',cost:2,type:'attack',element:'nature',dmg:6,desc:'6点自然伤',rarity:'common'},
+  {id:'meteor',name:'陨石术',icon:'🌌',cost:5,type:'attack',element:'fire',dmg:15,desc:'15点火伤',rarity:'legend'},
+  {id:'blizzard',name:'暴风雪',icon:'🌨️',cost:5,type:'attack',element:'ice',dmg:12,desc:'12冰伤+冻结',rarity:'legend'},
+  {id:'chain_lightning',name:'连锁闪电',icon:'🌩️',cost:4,type:'attack',element:'thunder',dmg:10,desc:'10点雷伤',rarity:'epic'},
+  {id:'fireball',name:'火球术',icon:'🔥',cost:3,type:'attack',element:'fire',dmg:8,desc:'8点火伤',rarity:'rare'},
+  {id:'frost_nova',name:'霜冻新星',icon:'🧊',cost:3,type:'attack',element:'ice',dmg:7,desc:'7冰伤+减速',rarity:'rare'},
+  {id:'thunderbolt',name:'雷霆击',icon:'⚡',cost:4,type:'attack',element:'thunder',dmg:12,desc:'12点雷伤',rarity:'epic'},
+  {id:'earth_spike',name:'地刺术',icon:'🌋',cost:3,type:'attack',element:'nature',dmg:9,desc:'9自然伤',rarity:'rare'},
+  {id:'ice_barrier',name:'冰盾术',icon:'🛡️',cost:2,type:'shield',element:'ice',val:8,desc:'+8护甲',rarity:'common'},
+  {id:'fire_wall',name:'火焰墙',icon:'🧱',cost:3,type:'shield',element:'fire',val:10,desc:'+10护甲',rarity:'rare'},
+  {id:'thunder_skin',name:'雷霆皮肤',icon:'⚡',cost:3,type:'shield',element:'thunder',val:6,desc:'+6护甲+反伤',rarity:'epic'},
+  {id:'heal',name:'治疗术',icon:'💚',cost:2,type:'heal',element:'nature',val:6,desc:'恢复6HP',rarity:'common'},
+  {id:'regrowth',name:'重生',icon:'🌷',cost:4,type:'heal',element:'nature',val:12,desc:'恢复12HP',rarity:'rare'},
+  {id:'meditate',name:'冥想',icon:'🧘',cost:0,type:'energy',element:'neutral',val:3,desc:'+3能量上限',rarity:'rare'},
+  {id:'rage',name:'狂暴',icon:'😡',cost:1,type:'buff',element:'fire',val:3,desc:'+3攻击力3回合',rarity:'rare'},
+  {id:'freeze_spell',name:'冰冻术',icon:'🧊',cost:3,type:'debuff',element:'ice',val:1,desc:'冻结1回合',rarity:'epic'},
+  {id:'weakness',name:'虚弱',icon:'😔',cost:2,type:'debuff',element:'nature',val:3,desc:'对手-3攻击2回合',rarity:'rare'},
+  {id:'poison_cloud',name:'毒云术',icon:'☠️',cost:3,type:'debuff',element:'nature',val:3,desc:'中毒3回合',rarity:'epic'},
+];
 
-// ── AI生成角色卡面 ──
-function generateArt(){
-  var prompt = document.getElementById('ai-prompt').value.trim();
-  var style = document.getElementById('ai-style').value;
-  var count = parseInt(document.getElementById('ai-count').value) || 1;
-  if(!prompt){ alert('请输入角色描述'); return; }
-  var btn = document.getElementById('ai-gen-btn');
-  var loading = document.getElementById('ai-loading');
-  var result = document.getElementById('ai-result');
-  btn.disabled = true; btn.textContent = '⏳ 生成中...';
-  loading.style.display = 'block';
-  result.style.display = 'none';
-  fetch('/api/card-game/generate-art', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({prompt: prompt, style: style, count: count})
-  }).then(function(r){ return r.json(); }).then(function(res){
-    btn.disabled = false; btn.textContent = '✨ 生成';
-    loading.style.display = 'none';
-    if(res.code === 0 && res.data && res.data.images){
-      aiGeneratedImages = res.data.images;
-      renderAIResult();
-    } else {
-      alert(res.msg || '生成失败，请重试');
-    }
-  }).catch(function(err){
-    btn.disabled = false; btn.textContent = '✨ 生成';
-    loading.style.display = 'none';
-    alert('网络错误：' + err.message);
+var ENEMIES = [
+  {name:'暗影术士',avatar:'👾',hp:30,ai:1,desc:'基础对手，随机出牌'},
+  {name:'魔魂骑士',avatar:'💀',hp:35,ai:2,desc:'智能AI，优先克制'},
+  {name:'冰封法师',avatar:'🔐',hp:40,ai:3,desc:'喜欢冻结+暴风雪连招'},
+  {name:'炎之女王',avatar:'🔥',hp:45,ai:4,desc:'火系法术大师'},
+  {name:'雷神降临',avatar:'⚡',hp:55,ai:5,desc:'最终BOSS，全能型AI'},
+];
+
+// ========== LocalStorage Helpers ==========
+function lsGet(k,def){try{var v=localStorage.getItem(k);return v===null?def:v}catch(e){return def}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function getCustomCards(){try{return JSON.parse(lsGet('ca_custom_cards','[]'))}catch(e){return[]}}
+function setCustomCards(c){lsSet('ca_custom_cards',JSON.stringify(c))}
+function getCardConfig(){try{return JSON.parse(lsGet('ca_card_config','{}'))}catch(e){return{}}}
+function setCardConfig(c){lsSet('ca_card_config',JSON.stringify(c))}
+function getLevelConfig(){try{return JSON.parse(lsGet('ca_level_config','[]'))}catch(e){return[]}}
+function setLevelConfig(l){lsSet('ca_level_config',JSON.stringify(l))}
+
+// ========== Tab Switching ==========
+document.querySelectorAll('.tab-btn').forEach(function(b){
+  b.addEventListener('click',function(){
+    document.querySelectorAll('.tab-btn').forEach(function(x){x.classList.toggle('active',x===b)});
+    document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active')});
+    document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+    if(b.dataset.tab==='cards')renderCardConfig();
+    if(b.dataset.tab==='levels')renderLevelConfig();
+    if(b.dataset.tab==='custom')renderCustomCards();
+    if(b.dataset.tab==='data')renderDataOverview();
   });
+});
+
+// ========== Toast ==========
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('active');
+  setTimeout(function(){t.classList.remove('active')},2000);
 }
 
-function renderAIResult(){
-  var grid = document.getElementById('ai-result-grid');
-  var html = '';
-  for(var i=0;i<aiGeneratedImages.length;i++){
-    html += '<div class="preview-item" style="width:120px;height:120px" onclick="selectAIImage('+i+')">'+
-      '<img src="'+aiGeneratedImages[i]+'">'+
-    '</div>';
-  }
-  grid.innerHTML = html;
-  document.getElementById('ai-result').style.display = 'block';
+// ========== Card Config ==========
+function renderCardConfig(){
+  var config=getCardConfig();
+  var html='';
+  CARD_POOL.forEach(function(card){
+    var cfg=config[card.id]||{};
+    var curCost=cfg.cost!==undefined?cfg.cost:card.cost;
+    var curDmg=cfg.dmg!==undefined?cfg.dmg:(card.dmg||card.val||0);
+    var defDmg=card.dmg||card.val||0;
+    html+='<tr>'+
+      '<td class="card-icon-cell">'+card.icon+'</td>'+
+      '<td>'+card.name+'</td>'+
+      '<td><span class="element-badge '+card.element+'">'+elementName(card.element)+'</span></td>'+
+      '<td>'+typeName(card.type)+'</td>'+
+      '<td>'+rarityName(card.rarity)+'</td>'+
+      '<td><input type="number" data-card="'+card.id+'" data-field="cost" value="'+curCost+'" min="0" max="10" style="width:50px"></td>'+
+      '<td><input type="number" data-card="'+card.id+'" data-field="dmg" value="'+curDmg+'" min="0" max="50" style="width:60px"></td>'+
+      '<td style="color:var(--muted)">'+card.cost+'</td>'+
+      '<td style="color:var(--muted)">'+defDmg+'</td>'+
+    '</tr>';
+  });
+  document.getElementById('card-config-body').innerHTML=html;
 }
 
-function selectAIImage(idx){
-  // 将选中的AI图片URL添加到pendingImages
-  var img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = function(){
-    var canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    var ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-    try {
-      pendingImages.push(canvas.toDataURL('image/png'));
-    } catch(e){
-      // 跨域无法toDataURL，直接用URL
-      pendingImages.push(aiGeneratedImages[idx]);
-    }
-    renderPreview();
-    // 滚动到上传区域
-    document.getElementById('upload-zone').scrollIntoView({behavior:'smooth',block:'center'});
-  };
-  img.onerror = function(){
-    // 加载失败也直接用URL
-    pendingImages.push(aiGeneratedImages[idx]);
-    renderPreview();
-  };
-  img.src = aiGeneratedImages[idx];
+function elementName(e){return{fire:'火',ice:'冰',thunder:'雷',nature:'自然',neutral:'中性'}[e]||e}
+function typeName(t){return{attack:'攻击',shield:'防御',heal:'治疗',energy:'能量',buff:'增益',debuff:'减益'}[t]||t}
+function rarityName(r){return{common:'普通',rare:'稀有',epic:'史诗',legend:'传说'}[r]||'普通'}
+
+function saveCardConfig(){
+  var config={};
+  document.querySelectorAll('#card-config-body input').forEach(function(input){
+    var cardId=input.dataset.card;
+    var field=input.dataset.field;
+    var val=parseInt(input.value);
+    if(!config[cardId])config[cardId]={};
+    config[cardId][field]=val;
+  });
+  // Only store overrides that differ from defaults
+  var cleaned={};
+  CARD_POOL.forEach(function(card){
+    var cfg=config[card.id];
+    if(!cfg)return;
+    var diff={};
+    if(cfg.cost!==undefined&&cfg.cost!==card.cost)diff.cost=cfg.cost;
+    var defDmg=card.dmg||card.val||0;
+    if(cfg.dmg!==undefined&&cfg.dmg!==defDmg)diff.dmg=cfg.dmg;
+    if(Object.keys(diff).length>0)cleaned[card.id]=diff;
+  });
+  setCardConfig(cleaned);
+  showToast('✅ 卡牌配置已保存');
 }
 
-// 渲染统计
-function renderStats(){
-  document.getElementById('stat-chars').textContent = characters.length;
-  document.getElementById('stat-games').textContent = gameStats.games;
-  document.getElementById('stat-wins').textContent = gameStats.wins;
-  document.getElementById('stat-level').textContent = gameStats.maxLevel;
-}
-renderStats();
-
-// 文件上传
-var uploadZone = document.getElementById('upload-zone');
-uploadZone.addEventListener('dragover', function(e){e.preventDefault();this.classList.add('dragover')});
-uploadZone.addEventListener('dragleave', function(){this.classList.remove('dragover')});
-uploadZone.addEventListener('drop', function(e){e.preventDefault();this.classList.remove('dragover');handleFiles(e.dataTransfer.files)});
-
-function handleFiles(files){
-  for(var i=0;i<files.length;i++){
-    var f = files[i];
-    if(!f.type.startsWith('image/')) continue;
-    var reader = new FileReader();
-    reader.onload = function(e){
-      pendingImages.push(e.target.result);
-      renderPreview();
-    };
-    reader.readAsDataURL(f);
-  }
+function resetCardConfig(){
+  if(!confirm('确定重置所有卡牌配置？'))return;
+  setCardConfig({});
+  renderCardConfig();
+  showToast('🔄 卡牌配置已重置');
 }
 
-function renderPreview(){
-  var html = '';
-  for(var i=0;i<pendingImages.length;i++){
-    html += '<div class="preview-item"><img src="'+pendingImages[i]+'"><div class="del" onclick="delPreview('+i+')">✕</div></div>';
-  }
-  var existing = document.querySelector('.upload-preview');
-  if(existing){
-    existing.innerHTML = html;
-  } else {
-    var div = document.createElement('div');
-    div.className = 'upload-preview';
-    div.innerHTML = html;
-    uploadZone.parentNode.insertBefore(div, uploadZone.nextSibling);
-  }
+// ========== Level Config ==========
+function renderLevelConfig(){
+  var config=getLevelConfig();
+  var html='';
+  ENEMIES.forEach(function(enemy,i){
+    var cfg=config[i]||{};
+    var name=cfg.name||enemy.name;
+    var avatar=cfg.avatar||enemy.avatar;
+    var hp=cfg.hp||enemy.hp;
+    var ai=cfg.ai||enemy.ai;
+    var desc=cfg.desc||enemy.desc;
+    html+='<tr>'+
+      '<td>第'+(i+1)+'关</td>'+
+      '<td><input type="text" data-level="'+i+'" data-field="name" value="'+name+'" style="width:100px"></td>'+
+      '<td><input type="text" data-level="'+i+'" data-field="avatar" value="'+avatar+'" style="width:50px;text-align:center"></td>'+
+      '<td><input type="number" data-level="'+i+'" data-field="hp" value="'+hp+'" min="10" max="200" style="width:60px"></td>'+
+      '<td><select data-level="'+i+'" data-field="ai" style="width:80px">'+
+        '<option value="1"'+(ai==1?' selected':'')+'>1-随机</option>'+
+        '<option value="2"'+(ai==2?' selected':'')+'>2-智能</option>'+
+        '<option value="3"'+(ai==3?' selected':'')+'>3-连招</option>'+
+        '<option value="4"'+(ai==4?' selected':'')+'>4-大师</option>'+
+        '<option value="5"'+(ai==5?' selected':'')+'>5-BOSS</option>'+
+      '</select></td>'+
+      '<td><input type="text" data-level="'+i+'" data-field="desc" value="'+desc+'" style="width:140px"></td>'+
+    '</tr>';
+  });
+  document.getElementById('level-config-body').innerHTML=html;
 }
 
-function delPreview(idx){
-  pendingImages.splice(idx,1);
-  renderPreview();
+function saveLevelConfig(){
+  var config=[];
+  document.querySelectorAll('#level-config-body input, #level-config-body select').forEach(function(el){
+    var lvl=parseInt(el.dataset.level);
+    var field=el.dataset.field;
+    if(!config[lvl])config[lvl]={};
+    if(field==='hp'||field==='ai')config[lvl][field]=parseInt(el.value);
+    else config[lvl][field]=el.value;
+  });
+  setLevelConfig(config);
+  showToast('✅ 关卡配置已保存');
 }
 
-function saveCharacters(){
-  var name = document.getElementById('char-name').value.trim();
-  var role = document.getElementById('char-role').value;
-  var desc = document.getElementById('char-desc').value.trim();
-  var hp = parseInt(document.getElementById('char-hp').value) || 30;
-  var ai = parseInt(document.getElementById('char-ai').value) || 1;
-  
-  if(pendingImages.length === 0){
-    alert('请先上传角色图片');
-    return;
-  }
-  if(!name){
-    alert('请填写角色名称');
-    return;
-  }
-  
-  for(var i=0;i<pendingImages.length;i++){
-    characters.push({
-      name: name + (pendingImages.length>1 ? ' #'+(i+1) : ''),
-      role: role,
-      desc: desc,
-      hp: hp,
-      ai: ai,
-      img: pendingImages[i],
-      created: Date.now()
+function resetLevelConfig(){
+  if(!confirm('确定重置关卡配置？'))return;
+  setLevelConfig([]);
+  renderLevelConfig();
+  showToast('🔄 关卡配置已重置');
+}
+
+// ========== Custom Cards ==========
+function renderCustomCards(){
+  var custom=getCustomCards();
+  var html='';
+  if(custom.length===0){
+    html='<div style="text-align:center;color:var(--muted);padding:16px">还没有自定义卡牌</div>';
+  }else{
+    custom.forEach(function(card,i){
+      html+='<div class="custom-card-item">'+
+        '<button class="cci-delete" onclick="deleteCustomCard('+i+')">✕</button>'+
+        '<div class="cci-icon">'+(card.icon||'🌟')+'</div>'+
+        '<div class="cci-name">'+card.name+'</div>'+
+        '<div class="cci-info">'+elementName(card.element)+'·'+typeName(card.type)+'</div>'+
+        '<div class="cci-info">费用'+card.cost+'·'+(card.dmg||card.val||0)+'</div>'+
+        '<div class="cci-info">'+rarityName(card.rarity)+'</div>'+
+      '</div>';
     });
   }
-  
-  localStorage.setItem('card_characters', JSON.stringify(characters));
-  pendingImages = [];
-  document.getElementById('char-name').value = '';
-  document.getElementById('char-desc').value = '';
-  renderPreview();
-  renderChars();
-  renderStats();
-  alert('保存成功！共'+characters.length+'个角色');
+  document.getElementById('custom-card-list').innerHTML=html;
 }
 
-function renderChars(){
-  var grid = document.getElementById('char-grid');
-  if(characters.length === 0){
-    grid.innerHTML = '<div style="color:var(--muted);grid-column:1/-1;text-align:center;padding:20px">暂无角色，请导入图片</div>';
-    return;
-  }
-  var roleNames = {mage:'法师',warrior:'战士',archer:'弓箭手',healer:'治疗者',summoner:'召唤师',boss:'BOSS'};
-  grid.innerHTML = characters.map(function(c,i){
-    return '<div class="char-card" onclick="editChar('+i+')">'+
-      '<img class="char-img" src="'+c.img+'">'+
-      '<div class="char-info">'+
-        '<div class="char-name">'+c.name+'</div>'+
-        '<div class="char-role">'+(roleNames[c.role]||c.role)+' · '+c.hp+'HP · AI'+c.ai+'</div>'+
+function addCustomCard(){
+  var name=document.getElementById('cc-name').value.trim();
+  if(!name){showToast('❌ 请输入卡牌名称');return}
+  var card={
+    id:'custom_'+Date.now(),
+    name:name,
+    icon:document.getElementById('cc-icon').value.trim()||'🌟',
+    cost:parseInt(document.getElementById('cc-cost').value)||2,
+    type:document.getElementById('cc-type').value,
+    element:document.getElementById('cc-element').value,
+    rarity:document.getElementById('cc-rarity').value,
+    dmg:parseInt(document.getElementById('cc-dmg').value)||0,
+    val:parseInt(document.getElementById('cc-dmg').value)||0,
+    desc:document.getElementById('cc-desc').value.trim()||'自定义卡牌'
+  };
+  var custom=getCustomCards();
+  custom.push(card);
+  setCustomCards(custom);
+  renderCustomCards();
+  // Clear form
+  document.getElementById('cc-name').value='';
+  document.getElementById('cc-icon').value='';
+  document.getElementById('cc-desc').value='';
+  showToast('✅ 卡牌「'+name+'」已添加');
+}
+
+function deleteCustomCard(idx){
+  var custom=getCustomCards();
+  custom.splice(idx,1);
+  setCustomCards(custom);
+  renderCustomCards();
+  showToast('🗑️ 已删除');
+}
+
+function previewCustomCard(){
+  var name=document.getElementById('cc-name').value.trim()||'未命名';
+  var icon=document.getElementById('cc-icon').value.trim()||'🌟';
+  var cost=document.getElementById('cc-cost').value||'0';
+  var element=document.getElementById('cc-element').value;
+  var desc=document.getElementById('cc-desc').value.trim()||'描述';
+  var rarity=document.getElementById('cc-rarity').value;
+  var html='<div class="preview-card '+element+'">'+
+    '<div style="font-size:1.5rem">'+icon+'</div>'+
+    '<div style="font-weight:700;margin:4px 0">'+name+'</div>'+
+    '<div style="font-size:10px;color:var(--muted)">'+desc+'</div>'+
+    '<div style="margin-top:4px"><span style="background:var(--accent);color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700">'+cost+' MP</span>'+
+    ' <span style="font-size:10px;color:var(--gold)">'+rarityName(rarity)+'</span></div>'+
+  '</div>';
+  document.getElementById('custom-preview').innerHTML=html;
+}
+
+// ========== Batch Import ==========
+function batchImport(){
+  var text=document.getElementById('batch-input').value.trim();
+  if(!text){showToast('❌ 请输入卡牌数据');return}
+  var lines=text.split('\n');
+  var custom=getCustomCards();
+  var count=0;
+  lines.forEach(function(line){
+    line=line.trim();
+    if(!line||line.startsWith('#'))return;
+    var parts=line.split(',');
+    if(parts.length<7){showToast('❌ 格式错误：'+line);return}
+    var card={
+      id:'custom_batch_'+Date.now()+'_'+count,
+      name:parts[0].trim(),
+      icon:parts[1].trim()||'🌟',
+      cost:parseInt(parts[2])||2,
+      type:parts[3].trim()||'attack',
+      element:parts[4].trim()||'neutral',
+      rarity:parts[5].trim()||'common',
+      dmg:parseInt(parts[6])||0,
+      val:parseInt(parts[6])||0,
+      desc:parts[7]?parts[7].trim():'自定义卡牌'
+    };
+    custom.push(card);
+    count++;
+  });
+  setCustomCards(custom);
+  renderCustomCards();
+  showToast('✅ 成功导入'+count+'张卡牌');
+  document.getElementById('batch-input').value='';
+}
+
+function exportCards(){
+  var all=getAllCardsForExport();
+  var lines=[];
+  all.forEach(function(c){
+    lines.push([c.name,c.icon,c.cost,c.type,c.element,c.rarity,c.dmg||c.val||0,c.desc].join(','));
+  });
+  document.getElementById('batch-output').value=lines.join('\n');
+  showToast('📋 已导出'+all.length+'张卡牌');
+}
+
+function getAllCardsForExport(){
+  var custom=getCustomCards();
+  return CARD_POOL.concat(custom);
+}
+
+// ========== AI Generate ==========
+function aiGenerate(){
+  var prompt=document.getElementById('ai-prompt').value.trim();
+  if(!prompt){showToast('❌ 请输入描述');return}
+  var result=generateCardFromAI(prompt);
+  var el=document.getElementById('ai-result');
+  el.classList.add('active');
+  el.innerHTML='<div style="margin-bottom:8px;color:var(--gold);font-weight:700">✨ AI生成结果：</div>'+
+    '<div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">'+
+      '<div class="preview-card '+result.element+'" style="min-width:120px">'+
+        '<div style="font-size:2rem">'+result.icon+'</div>'+
+        '<div style="font-weight:700;margin:4px 0;font-size:13px">'+result.name+'</div>'+
+        '<div style="font-size:10px;color:var(--muted)">'+result.desc+'</div>'+
+        '<div style="margin-top:6px"><span style="background:var(--accent);color:#fff;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700">'+result.cost+' MP</span>'+
+        ' <span style="font-size:10px;color:var(--gold)">'+rarityName(result.rarity)+'</span></div>'+
+      '</div>'+
+      '<div style="flex:1;min-width:200px">'+
+        '<div style="font-size:12px;line-height:2">'+
+          '<strong>名称：</strong>'+result.name+'<br>'+
+          '<strong>图标：</strong>'+result.icon+'<br>'+
+          '<strong>费用：</strong>'+result.cost+'<br>'+
+          '<strong>类型：</strong>'+typeName(result.type)+'<br>'+
+          '<strong>元素：</strong>'+elementName(result.element)+'<br>'+
+          '<strong>稀有度：</strong>'+rarityName(result.rarity)+'<br>'+
+          '<strong>伤害/数值：</strong>'+(result.dmg||result.val)+'<br>'+
+          '<strong>描述：</strong>'+result.desc+
+        '</div>'+
+        '<button class="btn btn-pri" style="margin-top:10px" onclick="addAICard('+JSON.stringify(result).replace(/"/g,'&quot;')+')">➕ 添加到卡池</button>'+
       '</div>'+
     '</div>';
-  }).join('');
-}
-renderChars();
-
-function editChar(i){
-  var c = characters[i];
-  if(!confirm('编辑角色: '+c.name+'\n点击确定保存，取消删除')) {
-    if(confirm('确认删除角色 '+c.name+' ？')){
-      characters.splice(i,1);
-      localStorage.setItem('card_characters',JSON.stringify(characters));
-      renderChars();renderStats();
-    }
-    return;
-  }
-  document.getElementById('char-name').value = c.name;
-  document.getElementById('char-role').value = c.role;
-  document.getElementById('char-desc').value = c.desc || '';
-  document.getElementById('char-hp').value = c.hp;
-  document.getElementById('char-ai').value = c.ai;
-  pendingImages = [c.img];
-  renderPreview();
-  characters.splice(i,1);
-  localStorage.setItem('card_characters',JSON.stringify(characters));
-  renderChars();renderStats();
 }
 
-function clearData(){
-  if(confirm('确认清空所有游戏数据？')){
-    localStorage.removeItem('card_game_stats');
-    localStorage.removeItem('card_war_score');
-    gameStats = {games:0,wins:0,maxLevel:1};
-    renderStats();
-    document.getElementById('game-log').innerHTML = '<div style="color:var(--muted)">已清空</div>';
+function generateCardFromAI(prompt){
+  prompt=prompt.toLowerCase();
+  // Element detection
+  var element='neutral';
+  if(prompt.indexOf('火')>=0||prompt.indexOf('fire')>=0||prompt.indexOf('焰')>=0||prompt.indexOf('燃')>=0)element='fire';
+  else if(prompt.indexOf('冰')>=0||prompt.indexOf('ice')>=0||prompt.indexOf('冻')>=0||prompt.indexOf('寒')>=0)element='ice';
+  else if(prompt.indexOf('雷')>=0||prompt.indexOf('thunder')>=0||prompt.indexOf('电')>=0||prompt.indexOf('闪电')>=0)element='thunder';
+  else if(prompt.indexOf('自然')>=0||prompt.indexOf('nature')>=0||prompt.indexOf('木')>=0||prompt.indexOf('草')>=0||prompt.indexOf('藤')>=0)element='nature';
+  
+  // Type detection
+  var type='attack';
+  if(prompt.indexOf('盾')>=0||prompt.indexOf('防御')>=0||prompt.indexOf('护')>=0)type='shield';
+  else if(prompt.indexOf('治')>=0||prompt.indexOf('恢复')>=0||prompt.indexOf('heal')>=0)type='heal';
+  else if(prompt.indexOf('能量')>=0||prompt.indexOf('energy')>=0)type='energy';
+  else if(prompt.indexOf('buff')>=0||prompt.indexOf('强化')>=0||prompt.indexOf('狂')>=0)type='buff';
+  else if(prompt.indexOf('debuff')>=0||prompt.indexOf('削弱')>=0||prompt.indexOf('毒')>=0)type='debuff';
+  
+  // Rarity detection
+  var rarity='rare';
+  if(prompt.indexOf('传说')>=0||prompt.indexOf('legend')>=0||prompt.indexOf('最强')>=0)rarity='legend';
+  else if(prompt.indexOf('史诗')>=0||prompt.indexOf('epic')>=0||prompt.indexOf('强力')>=0)rarity='epic';
+  else if(prompt.indexOf('普通')>=0||prompt.indexOf('common')>=0||prompt.indexOf('基础')>=0)rarity='common';
+  
+  // Power scaling
+  var baseDmg={common:4,rare:7,epic:10,legend:14}[rarity];
+  var baseCost={common:2,rare:3,epic:4,legend:5}[rarity];
+  if(prompt.indexOf('大量')>=0||prompt.indexOf('高')>=0||prompt.indexOf('强')>=0)baseDmg=Math.round(baseDmg*1.4);
+  if(prompt.indexOf('低费')>=0||prompt.indexOf('便宜')>=0)baseCost=Math.max(1,baseCost-1);
+  
+  // Icon selection
+  var icons={fire:['🔥','🌋','☄️','🌟'],ice:['❄️','🧊','🌨️','💎'],thunder:['⚡','🌩️','⚡',' purple'],nature:['🌿','🌱','🌷','🍃'],neutral:['✨','🌟','💫','⭐']};
+  var iconList=icons[element]||icons.neutral;
+  var icon=iconList[Math.floor(Math.random()*iconList.length)];
+  
+  // Name generation
+  var prefixes={fire:['烈焰','灼烧','熔岩','炎爆'],ice:['寒冰','霜冻','冰封','凛冬'],thunder:['雷霆','闪电','雷暴','奔雷'],nature:['自然','生命','荆棘','大地'],neutral:['神秘',' arcane','星','奥术']};
+  var suffixes={attack:['打击','轰击','爆破','突袭'],shield:['护盾','屏障','壁障','守护'],heal:['恢复','祝福','治愈','恩泽'],energy:['涌动','共鸣','觉醒','冥想'],buff:['狂暴','战吼','激励','怒火'],debuff:['诅咒','侵蚀','衰弱','腐化']};
+  var prefixList=prefixes[element]||prefixes.neutral;
+  var suffixList=suffixes[type]||suffixes.attack;
+  var name=prefixList[Math.floor(Math.random()*prefixList.length)]+suffixList[Math.floor(Math.random()*suffixList.length)];
+  
+  var desc='';
+  if(type==='attack'){
+    desc=baseDmg+'点'+elementName(element)+'伤害';
+    if(element==='ice')desc+='，可能冻结';
+    if(element==='fire')desc+='，可能点燃';
+  }else if(type==='shield'){
+    desc='+'+baseDmg+'护甲';
+    baseDmg=Math.round(baseDmg*1.2);
+  }else if(type==='heal'){
+    desc='恢复'+baseDmg+'HP';
+  }else if(type==='energy'){
+    desc='+'+Math.max(2,Math.round(baseDmg/3))+'能量上限';
+    baseDmg=Math.max(2,Math.round(baseDmg/3));
+  }else if(type==='buff'){
+    desc='+'+Math.max(2,Math.round(baseDmg/2))+'攻击力3回合';
+    baseDmg=Math.max(2,Math.round(baseDmg/2));
+  }else if(type==='debuff'){
+    desc='对手-'+baseDmg+'攻击2回合';
+  }
+  
+  return{id:'ai_'+Date.now(),name:name,icon:icon,cost:baseCost,type:type,element:element,rarity:rarity,dmg:baseDmg,val:baseDmg,desc:desc};
+}
+
+function addAICard(cardStr){
+  try{
+    var card=typeof cardStr==='string'?JSON.parse(cardStr):cardStr;
+    card.id='ai_'+Date.now();
+    var custom=getCustomCards();
+    custom.push(card);
+    setCustomCards(custom);
+    renderCustomCards();
+    showToast('✅ 「'+card.name+'」已添加到卡池');
+  }catch(e){showToast('❌ 添加失败：'+e.message)}
+}
+
+function useTemplate(type){
+  var templates={
+    fire:{name:'烈焰风暴',icon:'🔥',cost:4,type:'attack',element:'fire',rarity:'epic',dmg:12,desc:'12点火伤，可能点燃'},
+    ice:{name:'极寒之触',icon:'🧊',cost:3,type:'debuff',element:'ice',rarity:'rare',dmg:1,desc:'冻结对手1回合'},
+    thunder:{name:'雷神之锤',icon:'⚡',cost:5,type:'attack',element:'thunder',rarity:'legend',dmg:15,desc:'15点雷伤，暴击率极高'},
+    nature:{name:'生命绽放',icon:'🌷',cost:3,type:'heal',element:'nature',rarity:'rare',dmg:10,desc:'恢复10HP'},
+    legend:{name:'天地裂变',icon:'🌌',cost:6,type:'attack',element:'fire',rarity:'legend',dmg:18,desc:'18点毁灭伤害'}
+  };
+  var t=templates[type]||templates.fire;
+  document.getElementById('ai-prompt').value='创建一张'+rarityName(t.rarity)+'级别的'+elementName(t.element)+'系'+typeName(t.type)+'卡牌，名为「'+t.name+'」，'+t.desc;
+  aiGenerate();
+}
+
+// ========== Data Management ==========
+function renderDataOverview(){
+  var html='';
+  html+='🪙 金币：'+(parseInt(lsGet('ca_coins','100'))||100)+'<br>';
+  html+='🃏 自定义卡牌：'+getCustomCards().length+'张<br>';
+  var col=getCollection();
+  html+='📖 收集卡牌：'+Object.keys(col).length+'张<br>';
+  html+='⚖️ 卡牌配置覆盖：'+Object.keys(getCardConfig()).length+'张<br>';
+  html+='🏰 关卡配置覆盖：'+getLevelConfig().filter(function(l){return l}).length+'关<br>';
+  var c=getCharacterData();
+  html+='📊 角色等级：Lv.'+c.level+' (胜'+c.wins+'/负'+c.losses+')<br>';
+  html+='🏆 已解锁天赋：'+(JSON.parse(lsGet('ca_talents','[]')).length)+'个<br>';
+  html+='🏅 成就解锁：'+Object.keys(getAchievementsData()).filter(function(k){return k.indexOf('_')<0&&getAchievementsData()[k]}).length+'/'+10+'<br>';
+  html+='📊 排行榜记录：'+(JSON.parse(lsGet('ca_leaderboard','[]'))).length+'条<br>';
+  document.getElementById('data-overview').innerHTML=html;
+}
+
+function getCollection(){try{return JSON.parse(lsGet('ca_collection','{}'))}catch(e){return{}}}
+function getCharacterData(){try{return JSON.parse(lsGet('ca_character','null'))||{level:1,wins:0,losses:0}}catch(e){return{level:1,wins:0,losses:0}}}
+function getAchievementsData(){try{return JSON.parse(lsGet('ca_achievements','{}'))}catch(e){return{}}}
+
+function exportAllData(){
+  var data={
+    coins:lsGet('ca_coins','100'),
+    collection:lsGet('ca_collection','{}'),
+    character:lsGet('ca_character','null'),
+    custom_cards:lsGet('ca_custom_cards','[]'),
+    card_config:lsGet('ca_card_config','{}'),
+    level_config:lsGet('ca_level_config','[]'),
+    talents:lsGet('ca_talents','[]'),
+    achievements:lsGet('ca_achievements','{}'),
+    leaderboard:lsGet('ca_leaderboard','[]'),
+    level:lsGet('ca_level','1'),
+    win_streak:lsGet('ca_win_streak','0'),
+    daily_draw:lsGet('ca_daily_draw',''),
+    export_date:new Date().toISOString()
+  };
+  document.getElementById('import-area').value=JSON.stringify(data,null,2);
+  showToast('📤 数据已导出到下方文本框');
+}
+
+function importData(){
+  document.getElementById('import-area').focus();
+  showToast('📋 请在下方粘贴数据后点击确认导入');
+}
+
+function doImport(){
+  var text=document.getElementById('import-area').value.trim();
+  if(!text){showToast('❌ 请粘贴数据');return}
+  try{
+    var data=JSON.parse(text);
+    if(data.coins)lsSet('ca_coins',data.coins);
+    if(data.collection)lsSet('ca_collection',data.collection);
+    if(data.character)lsSet('ca_character',data.character);
+    if(data.custom_cards)lsSet('ca_custom_cards',data.custom_cards);
+    if(data.card_config)lsSet('ca_card_config',data.card_config);
+    if(data.level_config)lsSet('ca_level_config',data.level_config);
+    if(data.talents)lsSet('ca_talents',data.talents);
+    if(data.achievements)lsSet('ca_achievements',data.achievements);
+    if(data.leaderboard)lsSet('ca_leaderboard',data.leaderboard);
+    if(data.level)lsSet('ca_level',data.level);
+    if(data.win_streak)lsSet('ca_win_streak',data.win_streak);
+    if(data.daily_draw)lsSet('ca_daily_draw',data.daily_draw);
+    showToast('✅ 数据导入成功');
+    renderDataOverview();
+    renderCardConfig();
+    renderLevelConfig();
+    renderCustomCards();
+  }catch(e){
+    showToast('❌ 导入失败：'+e.message);
   }
 }
 
-// 读取对战日志
-var warLog = JSON.parse(localStorage.getItem('card_war_score')||'{"w":0,"l":0}');
-if(warLog.w || warLog.l){
-  var logHtml = '<div>卡牌对战: '+warLog.w+'胜 / '+warLog.l+'负</div>';
-  document.getElementById('game-log').innerHTML = logHtml;
+function resetAllData(){
+  if(!confirm('⚠️ 确定重置所有游戏数据？\n\n这将清除：\n· 金币和收藏\n· 角色进度\n· 自定义卡牌\n· 所有配置\n\n此操作不可撤销！'))return;
+  if(!confirm('再次确认：真的要删除所有数据吗？'))return;
+  var keys=['ca_coins','ca_collection','ca_character','ca_custom_cards','ca_card_config','ca_level_config','ca_talents','ca_achievements','ca_leaderboard','ca_level','ca_win_streak','ca_daily_draw'];
+  keys.forEach(function(k){localStorage.removeItem(k)});
+  showToast('🗑️ 所有数据已重置');
+  renderDataOverview();
+  renderCardConfig();
+  renderLevelConfig();
+  renderCustomCards();
 }
 
-// ========== 图片URL批量导入 ==========
-function imageUrlToBase64(url){
-  return new Promise(function(resolve,reject){
-    // 方法1: 尝试 fetch + blob → FileReader (处理跨域)
-    fetch(url, {mode:'cors'}).then(function(res){
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      return res.blob();
-    }).then(function(blob){
-      if(!blob.type.startsWith('image/')){
-        reject(new Error('非图片类型: '+blob.type));
-        return;
-      }
-      var reader = new FileReader();
-      reader.onload = function(){ resolve(reader.result); };
-      reader.onerror = function(){ reject(new Error('FileReader失败')); };
-      reader.readAsDataURL(blob);
-    }).catch(function(fetchErr){
-      // 方法2: 用 Image + canvas 降级 (不处理跨域, 可能因CORS失败)
-      var img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = function(){
-        try{
-          var canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth || 100;
-          canvas.height = img.naturalHeight || 100;
-          var ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-          var dataUrl = canvas.toDataURL('image/png');
-          resolve(dataUrl);
-        }catch(canvasErr){
-          // 方法3: 直接用URL作为src (不转base64, 存储URL)
-          resolve(url);
-        }
-      };
-      img.onerror = function(){ reject(new Error('图片加载失败: '+url)); };
-      img.src = url;
-    });
-  });
-}
-
-function batchImport(){
-  var urlsText = document.getElementById('batch-urls').value.trim();
-  var prefix = document.getElementById('batch-prefix').value.trim() || '角色';
-  var role = document.getElementById('batch-role').value;
-  var hp = parseInt(document.getElementById('batch-hp').value) || 30;
-  var ai = parseInt(document.getElementById('batch-ai').value) || 1;
-  
-  if(!urlsText){
-    alert('请粘贴图片URL，每行一个');
-    return;
-  }
-  
-  var urls = urlsText.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l && !l.startsWith('//'); });
-  
-  if(urls.length === 0){
-    alert('未检测到有效URL');
-    return;
-  }
-  
-  // 检查角色数量上限
-  if(characters.length + urls.length > 20){
-    alert('当前已有'+characters.length+'个角色，批量导入'+urls.length+'个将超过上限20个。\n请减少URL数量。');
-    return;
-  }
-  
-  var btn = document.getElementById('batch-btn');
-  var progressDiv = document.getElementById('batch-progress');
-  var resultDiv = document.getElementById('batch-result');
-  var statusEl = document.getElementById('batch-status');
-  var countEl = document.getElementById('batch-count');
-  var barEl = document.getElementById('batch-bar');
-  
-  btn.disabled = true;
-  btn.textContent = '⏳ 导入中...';
-  progressDiv.style.display = 'block';
-  resultDiv.style.display = 'none';
-  
-  var success = [];
-  var failed = [];
-  var total = urls.length;
-  var done = 0;
-  
-  function updateProgress(){
-    done++;
-    var pct = Math.round((done / total) * 100);
-    statusEl.textContent = '正在处理: ' + (done===total ? '完成' : urls[done-1].substring(0,40)+'...');
-    countEl.textContent = done + '/' + total;
-    barEl.style.width = pct + '%';
-  }
-  
-  // 串行处理每个URL, 避免并发请求过多
-  function processNext(idx){
-    if(idx >= total){
-      // 全部完成
-      if(success.length > 0){
-        localStorage.setItem('card_characters', JSON.stringify(characters));
-        renderChars();
-        renderStats();
-      }
-      
-      btn.disabled = false;
-      btn.textContent = '🚀 开始批量导入';
-      
-      var resultHtml = '<div style="background:rgba(0,0,0,.2);border-radius:10px;padding:14px">';
-      resultHtml += '<div style="font-size:14px;margin-bottom:8px"><span style="color:var(--green);font-weight:700">✅ 成功: '+success.length+'个</span>';
-      if(failed.length>0){
-        resultHtml += ' &nbsp; <span style="color:var(--red);font-weight:700">❌ 失败: '+failed.length+'个</span>';
-      }
-      resultHtml += '</div>';
-      
-      if(success.length > 0){
-        resultHtml += '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">成功导入:</div>';
-        resultHtml += '<div style="font-size:12px;color:var(--green);line-height:1.6">';
-        success.forEach(function(s){ resultHtml += '• '+s.name+'<br>'; });
-        resultHtml += '</div>';
-      }
-      if(failed.length > 0){
-        resultHtml += '<div style="font-size:12px;color:var(--muted);margin:8px 0 4px">失败详情:</div>';
-        resultHtml += '<div style="font-size:12px;color:var(--red);line-height:1.6">';
-        failed.forEach(function(f){ resultHtml += '• '+f.url.substring(0,50)+' → '+f.err+'<br>'; });
-        resultHtml += '</div>';
-      }
-      resultHtml += '</div>';
-      resultDiv.innerHTML = resultHtml;
-      resultDiv.style.display = 'block';
-      
-      // 清空textarea
-      document.getElementById('batch-urls').value = '';
-      return;
-    }
-    
-    var url = urls[idx];
-    statusEl.textContent = '正在加载: ' + url.substring(0,40) + '...';
-    countEl.textContent = (idx+1) + '/' + total;
-    barEl.style.width = Math.round((idx / total) * 100) + '%';
-    
-    imageUrlToBase64(url).then(function(base64){
-      var charName = prefix + (idx + 1);
-      characters.push({
-        name: charName,
-        role: role,
-        desc: '',
-        hp: hp,
-        ai: ai,
-        img: base64,
-        created: Date.now() + idx
-      });
-      success.push({name: charName, url: url});
-      updateProgress();
-      processNext(idx + 1);
-    }).catch(function(err){
-      failed.push({url: url, err: err.message || '未知错误'});
-      updateProgress();
-      processNext(idx + 1);
-    });
-  }
-  
-  processNext(0);
-}
+// Init
+renderCardConfig();
+renderLevelConfig();
+renderCustomCards();
+renderDataOverview();
 </script>
 </body>
 </html>
