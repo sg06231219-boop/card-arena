@@ -1,4 +1,4 @@
-# Render 部署配置 - 卡牌竞技场
+# Render deployment config - Card Arena
 services:
   - type: web
     name: card-arena
