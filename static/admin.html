@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>卡牌游戏管理后台 - SG智能建站</title>
+<style>
+:root{--bg:#060818;--bg2:#0d1126;--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.08);--text:#e2e8f0;--muted:#64748b;--accent:#7c5cfa;--cyan:#22d3ee;--green:#10b981;--red:#ef4444;--gold:#fbbf24}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(124,92,250,.08),transparent)}
+.bg::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,.03) 1px,transparent 0);background-size:30px 30px}
+nav{position:sticky;top:0;z-index:1000;background:rgba(6,8,24,.8);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 20px}
+.nav-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:52px}
+.nav-logo{font-size:16px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+.container{max-width:900px;margin:0 auto;padding:20px}
+h1{font-size:1.5rem;margin-bottom:16px}
+h2{font-size:1.1rem;color:var(--cyan);margin:20px 0 10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin:12px 0;backdrop-filter:blur(12px)}
+label{display:block;margin:8px 0 4px;color:var(--muted);font-size:13px}
+input,select,textarea{width:100%;background:rgba(0,0,0,.2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:10px;font-size:14px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{padding:10px 24px;border-radius:12px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s}
+.btn-pri{background:linear-gradient(135deg,var(--accent),var(--cyan));color:#fff}
+.btn-pri:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(124,92,250,.3)}
+.btn-sec{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.btn-sec:hover{border-color:var(--accent)}
+.btn-sm{padding:6px 14px;font-size:12px}
+/* 图片上传 */
+.upload-zone{border:2px dashed var(--border);border-radius:16px;padding:32px;text-align:center;cursor:pointer;transition:all .3s;position:relative}
+.upload-zone:hover{border-color:var(--accent);background:rgba(124,92,250,.04)}
+.upload-zone.dragover{border-color:var(--cyan);background:rgba(34,211,238,.06)}
+.upload-zone .icon{font-size:2.5rem;margin-bottom:8px}
+.upload-zone .hint{color:var(--muted);font-size:14px}
+.upload-preview{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
+.preview-item{width:80px;height:80px;border-radius:12px;border:2px solid var(--border);overflow:hidden;position:relative;cursor:pointer;transition:all .2s}
+.preview-item:hover{border-color:var(--accent);transform:scale(1.05)}
+.preview-item img{width:100%;height:100%;object-fit:cover}
+.preview-item .del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(239,68,68,.8);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .2s}
+.preview-item:hover .del{opacity:1}
+/* 角色列表 */
+.char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin:12px 0}
+.char-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:all .2s;cursor:pointer}
+.char-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.char-card .char-img{width:100%;aspect-ratio:1;object-fit:cover;background:var(--bg)}
+.char-card .char-info{padding:8px 10px}
+.char-card .char-name{font-size:13px;font-weight:600}
+.char-card .char-role{font-size:11px;color:var(--muted)}
+/* 统计 */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin:12px 0}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+.stat .val{font-size:1.8rem;font-weight:800;font-family:monospace;color:var(--accent)}
+.stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+/* 配置 */
+.config-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.config-row:last-child{border-bottom:none}
+.config-row .name{font-size:14px}
+.config-row .val{font-size:13px;color:var(--cyan);font-weight:600}
+.toggle{width:40px;height:22px;border-radius:11px;background:var(--border);position:relative;cursor:pointer;transition:background .3s}
+.toggle.on{background:var(--green)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .3s}
+.toggle.on::after{left:20px}
+.footer{text-align:center;padding:24px;color:var(--muted);font-size:.8rem}
+.footer a{color:var(--accent);text-decoration:none}
+@media(max-width:600px){.row{grid-template-columns:1fr}.char-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<nav><div class="nav-inner">
+<a href="/" class="nav-logo">⚡ SG工具</a>
+<div style="display:flex;gap:10px">
+<a href="/tools/card-game" style="font-size:13px;color:var(--muted);text-decoration:none">🃏 返回游戏</a>
+<a href="/admin" style="font-size:13px;color:var(--muted);text-decoration:none">🏢 主后台</a>
+</div>
+</div></nav>
+<div class="bg"></div>
+<div class="container">
+
+<h1>🏢 卡牌游戏管理后台</h1>
+
+<div class="stats" id="stats">
+<div class="stat"><div class="val" id="stat-chars">0</div><div class="lbl">角色数</div></div>
+<div class="stat"><div class="val" id="stat-games">0</div><div class="lbl">游戏场次</div></div>
+<div class="stat"><div class="val" id="stat-wins">0</div><div class="lbl">胜利次数</div></div>
+<div class="stat"><div class="val" id="stat-level">1</div><div class="lbl">最高关卡</div></div>
+</div>
+
+<h2>🎨 AI生成角色卡面</h2>
+<div class="card">
+<div style="display:grid;grid-template-columns:1fr 140px;gap:12px">
+<div>
+<label>角色描述（如：火焰法师，红发女性，手持法杖）</label>
+<textarea id="ai-prompt" rows="2" placeholder="描述角色外貌、职业、特征..." style="resize:vertical;font-size:14px"></textarea>
+</div>
+<div>
+<label>风格</label>
+<select id="ai-style">
+<option value="fantasy">奇幻</option>
+<option value="dark">暗黑</option>
+<option value="anime">二次元</option>
+<option value="realistic">写实</option>
+<option value="pixel">像素风</option>
+</select>
+</div>
+</div>
+<div style="display:flex;gap:10px;margin-top:10px;align-items:center">
+<button class="btn btn-pri" id="ai-gen-btn" onclick="generateArt()">✨ 生成</button>
+<label style="margin:0;color:var(--muted);font-size:13px">数量</label>
+<select id="ai-count" style="width:80px">
+<option value="1">1张</option>
+<option value="2">2张</option>
+<option value="3" selected>3张</option>
+<option value="4">4张</option>
+</select>
+</div>
+<div id="ai-loading" style="display:none;margin-top:14px;text-align:center;padding:20px">
+<div style="font-size:2rem">⏳</div>
+<div style="color:var(--muted);font-size:13px;margin-top:6px">AI正在创作中，请稍候...</div>
+</div>
+<div id="ai-result" style="display:none;margin-top:14px">
+<label style="margin-bottom:8px">生成结果（点击选用）</label>
+<div id="ai-result-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px"></div>
+</div>
+</div>
+
+<h2>📎 导入角色图片</h2>
+<div class="card">
+<div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+<div class="icon">📷</div>
+<div class="hint">点击或拖拽图片到此处上传</div>
+<div style="font-size:11px;color:var(--muted);margin-top:4px">支持 PNG/JPG/WebP，建议正方形，最大个</div>
+</div>
+<input type="file" id="file-input" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files)">
+
+<div class="row" style="margin-top:12px">
+<div>
+<label>角色名称</label>
+<input type="text" id="char-name" placeholder="如: 炎之女王">
+</div>
+<div>
+<label>角色职业</label>
+<select id="char-role">
+<option value="mage">法师</option>
+<option value="warrior">战士</option>
+<option value="archer">弓箭手</option>
+<option value="healer">治疗者</option>
+<option value="summoner">召唤师</option>
+<option value="boss">BOSS</option>
+</select>
+</div>
+</div>
+<div style="margin-top:12px">
+<label>角色描述</label>
+<textarea id="char-desc" rows="2" placeholder="简要描述角色背景" style="resize:vertical"></textarea>
+</div>
+<div class="row" style="margin-top:12px">
+<div>
+<label>HP</label>
+<input type="number" id="char-hp" value="30" min="20" max="100">
+</div>
+<div>
+<label>AI等级</label>
+<select id="char-ai">
+<option value="1">基础AI</option>
+<option value="2">智能AI</option>
+<option value="3">高级AI</option>
+<option value="4">大师AI</option>
+<option value="5">最终BOSS</option>
+</select>
+</div>
+</div>
+<button class="btn btn-pri" style="margin-top:12px;width:100%" onclick="saveCharacters()">💾 保存角色配置</button>
+</div>
+
+<h2>🔗 图片URL批量导入</h2>
+<div class="card">
+<label>图片URL列表（每行一个URL）</label>
+<textarea id="batch-urls" rows="6" placeholder="https://example.com/image1.png&#10;https://example.com/image2.jpg&#10;https://example.com/image3.webp" style="resize:vertical;font-family:monospace;font-size:12px"></textarea>
+<div class="row" style="margin-top:12px">
+<div>
+<label>角色名前缀（自动编号）</label>
+<input type="text" id="batch-prefix" placeholder="如: 英雄 → 英雄1, 英雄2...">
+</div>
+<div>
+<label>角色职业（统一）</label>
+<select id="batch-role">
+<option value="mage">法师</option>
+<option value="warrior">战士</option>
+<option value="archer">弓箭手</option>
+<option value="healer">治疗者</option>
+<option value="summoner">召唤师</option>
+<option value="boss">BOSS</option>
+</select>
+</div>
+</div>
+<div class="row" style="margin-top:12px">
+<div>
+<label>HP（统一）</label>
+<input type="number" id="batch-hp" value="30" min="20" max="100">
+</div>
+<div>
+<label>AI等级（统一）</label>
+<select id="batch-ai">
+<option value="1">基础AI</option>
+<option value="2">智能AI</option>
+<option value="3">高级AI</option>
+<option value="4">大师AI</option>
+<option value="5">最终BOSS</option>
+</select>
+</div>
+</div>
+<button class="btn btn-pri" style="margin-top:14px;width:100%" id="batch-btn" onclick="batchImport()">🚀 开始批量导入</button>
+<div id="batch-progress" style="margin-top:12px;display:none">
+<div style="background:rgba(0,0,0,.2);border-radius:10px;padding:12px">
+<div style="display:flex;justify-content:space-between;margin-bottom:6px">
+<span id="batch-status" style="font-size:13px;color:var(--cyan)">准备中...</span>
+<span id="batch-count" style="font-size:13px;color:var(--muted)">0/0</span>
+</div>
+<div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+<div id="batch-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--cyan));transition:width .3s"></div>
+</div>
+</div>
+</div>
+<div id="batch-result" style="margin-top:12px;display:none"></div>
+</div>
+
+<h2>📅 已导入角色</h2>
+<div class="card">
+<div class="char-grid" id="char-grid">
+<div style="color:var(--muted);grid-column:1/-1;text-align:center;padding:20px">暂无角色，请导入图片</div>
+</div>
+</div>
+
+<h2>⚙️ 游戏配置</h2>
+<div class="card">
+<div class="config-row">
+<span class="name">开启暴击系统</span>
+<div class="toggle on" onclick="this.classList.toggle('on')"></div>
+</div>
+<div class="config-row">
+<span class="name">开启闪避系统</span>
+<div class="toggle on" onclick="this.classList.toggle('on')"></div>
+</div>
+<div class="config-row">
+<span class="name">开启元素克制</span>
+<div class="toggle on" onclick="this.classList.toggle('on')"></div>
+</div>
+<div class="config-row">
+<span class="name">开启连击系统</span>
+<div class="toggle on" onclick="this.classList.toggle('on')"></div>
+</div>
+<div class="config-row">
+<span class="name">开启自定义角色</span>
+<div class="toggle" onclick="this.classList.toggle('on')"></div>
+</div>
+<div class="config-row">
+<span class="name">初始生命值</span>
+<span class="val">30 HP</span>
+</div>
+<div class="config-row">
+<span class="name">最大能量上限</span>
+<span class="val">10 MP</span>
+</div>
+</div>
+
+<h2>📊 游戏数据</h2>
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+<strong>对战记录</strong>
+<button class="btn btn-sec btn-sm" onclick="clearData()">🗑️ 清空</button>
+</div>
+<div id="game-log" style="max-height:200px;overflow-y:auto;font-size:12px;font-family:monospace;line-height:1.8;background:rgba(0,0,0,.2);border-radius:10px;padding:12px">
+<div style="color:var(--muted)">暂无对战记录</div>
+</div>
+</div>
+
+<div class="footer">
+<p>🏢 卡牌游戏管理后台 · <a href="/tools/card-game">返回游戏</a> · <a href="/">返回首页</a></p>
+</div>
+</div>
+
+<script>
+var characters = JSON.parse(localStorage.getItem('card_characters') || '[]');
+var gameStats = JSON.parse(localStorage.getItem('card_game_stats') || '{"games":0,"wins":0,"maxLevel":1}');
+var pendingImages = [];
+var aiGeneratedImages = []; // AI生成的图片URL列表
+
+// ── AI生成角色卡面 ──
+function generateArt(){
+  var prompt = document.getElementById('ai-prompt').value.trim();
+  var style = document.getElementById('ai-style').value;
+  var count = parseInt(document.getElementById('ai-count').value) || 1;
+  if(!prompt){ alert('请输入角色描述'); return; }
+  var btn = document.getElementById('ai-gen-btn');
+  var loading = document.getElementById('ai-loading');
+  var result = document.getElementById('ai-result');
+  btn.disabled = true; btn.textContent = '⏳ 生成中...';
+  loading.style.display = 'block';
+  result.style.display = 'none';
+  fetch('/api/card-game/generate-art', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({prompt: prompt, style: style, count: count})
+  }).then(function(r){ return r.json(); }).then(function(res){
+    btn.disabled = false; btn.textContent = '✨ 生成';
+    loading.style.display = 'none';
+    if(res.code === 0 && res.data && res.data.images){
+      aiGeneratedImages = res.data.images;
+      renderAIResult();
+    } else {
+      alert(res.msg || '生成失败，请重试');
+    }
+  }).catch(function(err){
+    btn.disabled = false; btn.textContent = '✨ 生成';
+    loading.style.display = 'none';
+    alert('网络错误：' + err.message);
+  });
+}
+
+function renderAIResult(){
+  var grid = document.getElementById('ai-result-grid');
+  var html = '';
+  for(var i=0;i<aiGeneratedImages.length;i++){
+    html += '<div class="preview-item" style="width:120px;height:120px" onclick="selectAIImage('+i+')">'+
+      '<img src="'+aiGeneratedImages[i]+'">'+
+    '</div>';
+  }
+  grid.innerHTML = html;
+  document.getElementById('ai-result').style.display = 'block';
+}
+
+function selectAIImage(idx){
+  // 将选中的AI图片URL添加到pendingImages
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function(){
+    var canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    try {
+      pendingImages.push(canvas.toDataURL('image/png'));
+    } catch(e){
+      // 跨域无法toDataURL，直接用URL
+      pendingImages.push(aiGeneratedImages[idx]);
+    }
+    renderPreview();
+    // 滚动到上传区域
+    document.getElementById('upload-zone').scrollIntoView({behavior:'smooth',block:'center'});
+  };
+  img.onerror = function(){
+    // 加载失败也直接用URL
+    pendingImages.push(aiGeneratedImages[idx]);
+    renderPreview();
+  };
+  img.src = aiGeneratedImages[idx];
+}
+
+// 渲染统计
+function renderStats(){
+  document.getElementById('stat-chars').textContent = characters.length;
+  document.getElementById('stat-games').textContent = gameStats.games;
+  document.getElementById('stat-wins').textContent = gameStats.wins;
+  document.getElementById('stat-level').textContent = gameStats.maxLevel;
+}
+renderStats();
+
+// 文件上传
+var uploadZone = document.getElementById('upload-zone');
+uploadZone.addEventListener('dragover', function(e){e.preventDefault();this.classList.add('dragover')});
+uploadZone.addEventListener('dragleave', function(){this.classList.remove('dragover')});
+uploadZone.addEventListener('drop', function(e){e.preventDefault();this.classList.remove('dragover');handleFiles(e.dataTransfer.files)});
+
+function handleFiles(files){
+  for(var i=0;i<files.length;i++){
+    var f = files[i];
+    if(!f.type.startsWith('image/')) continue;
+    var reader = new FileReader();
+    reader.onload = function(e){
+      pendingImages.push(e.target.result);
+      renderPreview();
+    };
+    reader.readAsDataURL(f);
+  }
+}
+
+function renderPreview(){
+  var html = '';
+  for(var i=0;i<pendingImages.length;i++){
+    html += '<div class="preview-item"><img src="'+pendingImages[i]+'"><div class="del" onclick="delPreview('+i+')">✕</div></div>';
+  }
+  var existing = document.querySelector('.upload-preview');
+  if(existing){
+    existing.innerHTML = html;
+  } else {
+    var div = document.createElement('div');
+    div.className = 'upload-preview';
+    div.innerHTML = html;
+    uploadZone.parentNode.insertBefore(div, uploadZone.nextSibling);
+  }
+}
+
+function delPreview(idx){
+  pendingImages.splice(idx,1);
+  renderPreview();
+}
+
+function saveCharacters(){
+  var name = document.getElementById('char-name').value.trim();
+  var role = document.getElementById('char-role').value;
+  var desc = document.getElementById('char-desc').value.trim();
+  var hp = parseInt(document.getElementById('char-hp').value) || 30;
+  var ai = parseInt(document.getElementById('char-ai').value) || 1;
+  
+  if(pendingImages.length === 0){
+    alert('请先上传角色图片');
+    return;
+  }
+  if(!name){
+    alert('请填写角色名称');
+    return;
+  }
+  
+  for(var i=0;i<pendingImages.length;i++){
+    characters.push({
+      name: name + (pendingImages.length>1 ? ' #'+(i+1) : ''),
+      role: role,
+      desc: desc,
+      hp: hp,
+      ai: ai,
+      img: pendingImages[i],
+      created: Date.now()
+    });
+  }
+  
+  localStorage.setItem('card_characters', JSON.stringify(characters));
+  pendingImages = [];
+  document.getElementById('char-name').value = '';
+  document.getElementById('char-desc').value = '';
+  renderPreview();
+  renderChars();
+  renderStats();
+  alert('保存成功！共'+characters.length+'个角色');
+}
+
+function renderChars(){
+  var grid = document.getElementById('char-grid');
+  if(characters.length === 0){
+    grid.innerHTML = '<div style="color:var(--muted);grid-column:1/-1;text-align:center;padding:20px">暂无角色，请导入图片</div>';
+    return;
+  }
+  var roleNames = {mage:'法师',warrior:'战士',archer:'弓箭手',healer:'治疗者',summoner:'召唤师',boss:'BOSS'};
+  grid.innerHTML = characters.map(function(c,i){
+    return '<div class="char-card" onclick="editChar('+i+')">'+
+      '<img class="char-img" src="'+c.img+'">'+
+      '<div class="char-info">'+
+        '<div class="char-name">'+c.name+'</div>'+
+        '<div class="char-role">'+(roleNames[c.role]||c.role)+' · '+c.hp+'HP · AI'+c.ai+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+renderChars();
+
+function editChar(i){
+  var c = characters[i];
+  if(!confirm('编辑角色: '+c.name+'\n点击确定保存，取消删除')) {
+    if(confirm('确认删除角色 '+c.name+' ？')){
+      characters.splice(i,1);
+      localStorage.setItem('card_characters',JSON.stringify(characters));
+      renderChars();renderStats();
+    }
+    return;
+  }
+  document.getElementById('char-name').value = c.name;
+  document.getElementById('char-role').value = c.role;
+  document.getElementById('char-desc').value = c.desc || '';
+  document.getElementById('char-hp').value = c.hp;
+  document.getElementById('char-ai').value = c.ai;
+  pendingImages = [c.img];
+  renderPreview();
+  characters.splice(i,1);
+  localStorage.setItem('card_characters',JSON.stringify(characters));
+  renderChars();renderStats();
+}
+
+function clearData(){
+  if(confirm('确认清空所有游戏数据？')){
+    localStorage.removeItem('card_game_stats');
+    localStorage.removeItem('card_war_score');
+    gameStats = {games:0,wins:0,maxLevel:1};
+    renderStats();
+    document.getElementById('game-log').innerHTML = '<div style="color:var(--muted)">已清空</div>';
+  }
+}
+
+// 读取对战日志
+var warLog = JSON.parse(localStorage.getItem('card_war_score')||'{"w":0,"l":0}');
+if(warLog.w || warLog.l){
+  var logHtml = '<div>卡牌对战: '+warLog.w+'胜 / '+warLog.l+'负</div>';
+  document.getElementById('game-log').innerHTML = logHtml;
+}
+
+// ========== 图片URL批量导入 ==========
+function imageUrlToBase64(url){
+  return new Promise(function(resolve,reject){
+    // 方法1: 尝试 fetch + blob → FileReader (处理跨域)
+    fetch(url, {mode:'cors'}).then(function(res){
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      return res.blob();
+    }).then(function(blob){
+      if(!blob.type.startsWith('image/')){
+        reject(new Error('非图片类型: '+blob.type));
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function(){ resolve(reader.result); };
+      reader.onerror = function(){ reject(new Error('FileReader失败')); };
+      reader.readAsDataURL(blob);
+    }).catch(function(fetchErr){
+      // 方法2: 用 Image + canvas 降级 (不处理跨域, 可能因CORS失败)
+      var img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function(){
+        try{
+          var canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || 100;
+          canvas.height = img.naturalHeight || 100;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          var dataUrl = canvas.toDataURL('image/png');
+          resolve(dataUrl);
+        }catch(canvasErr){
+          // 方法3: 直接用URL作为src (不转base64, 存储URL)
+          resolve(url);
+        }
+      };
+      img.onerror = function(){ reject(new Error('图片加载失败: '+url)); };
+      img.src = url;
+    });
+  });
+}
+
+function batchImport(){
+  var urlsText = document.getElementById('batch-urls').value.trim();
+  var prefix = document.getElementById('batch-prefix').value.trim() || '角色';
+  var role = document.getElementById('batch-role').value;
+  var hp = parseInt(document.getElementById('batch-hp').value) || 30;
+  var ai = parseInt(document.getElementById('batch-ai').value) || 1;
+  
+  if(!urlsText){
+    alert('请粘贴图片URL，每行一个');
+    return;
+  }
+  
+  var urls = urlsText.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l && !l.startsWith('//'); });
+  
+  if(urls.length === 0){
+    alert('未检测到有效URL');
+    return;
+  }
+  
+  // 检查角色数量上限
+  if(characters.length + urls.length > 20){
+    alert('当前已有'+characters.length+'个角色，批量导入'+urls.length+'个将超过上限20个。\n请减少URL数量。');
+    return;
+  }
+  
+  var btn = document.getElementById('batch-btn');
+  var progressDiv = document.getElementById('batch-progress');
+  var resultDiv = document.getElementById('batch-result');
+  var statusEl = document.getElementById('batch-status');
+  var countEl = document.getElementById('batch-count');
+  var barEl = document.getElementById('batch-bar');
+  
+  btn.disabled = true;
+  btn.textContent = '⏳ 导入中...';
+  progressDiv.style.display = 'block';
+  resultDiv.style.display = 'none';
+  
+  var success = [];
+  var failed = [];
+  var total = urls.length;
+  var done = 0;
+  
+  function updateProgress(){
+    done++;
+    var pct = Math.round((done / total) * 100);
+    statusEl.textContent = '正在处理: ' + (done===total ? '完成' : urls[done-1].substring(0,40)+'...');
+    countEl.textContent = done + '/' + total;
+    barEl.style.width = pct + '%';
+  }
+  
+  // 串行处理每个URL, 避免并发请求过多
+  function processNext(idx){
+    if(idx >= total){
+      // 全部完成
+      if(success.length > 0){
+        localStorage.setItem('card_characters', JSON.stringify(characters));
+        renderChars();
+        renderStats();
+      }
+      
+      btn.disabled = false;
+      btn.textContent = '🚀 开始批量导入';
+      
+      var resultHtml = '<div style="background:rgba(0,0,0,.2);border-radius:10px;padding:14px">';
+      resultHtml += '<div style="font-size:14px;margin-bottom:8px"><span style="color:var(--green);font-weight:700">✅ 成功: '+success.length+'个</span>';
+      if(failed.length>0){
+        resultHtml += ' &nbsp; <span style="color:var(--red);font-weight:700">❌ 失败: '+failed.length+'个</span>';
+      }
+      resultHtml += '</div>';
+      
+      if(success.length > 0){
+        resultHtml += '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">成功导入:</div>';
+        resultHtml += '<div style="font-size:12px;color:var(--green);line-height:1.6">';
+        success.forEach(function(s){ resultHtml += '• '+s.name+'<br>'; });
+        resultHtml += '</div>';
+      }
+      if(failed.length > 0){
+        resultHtml += '<div style="font-size:12px;color:var(--muted);margin:8px 0 4px">失败详情:</div>';
+        resultHtml += '<div style="font-size:12px;color:var(--red);line-height:1.6">';
+        failed.forEach(function(f){ resultHtml += '• '+f.url.substring(0,50)+' → '+f.err+'<br>'; });
+        resultHtml += '</div>';
+      }
+      resultHtml += '</div>';
+      resultDiv.innerHTML = resultHtml;
+      resultDiv.style.display = 'block';
+      
+      // 清空textarea
+      document.getElementById('batch-urls').value = '';
+      return;
+    }
+    
+    var url = urls[idx];
+    statusEl.textContent = '正在加载: ' + url.substring(0,40) + '...';
+    countEl.textContent = (idx+1) + '/' + total;
+    barEl.style.width = Math.round((idx / total) * 100) + '%';
+    
+    imageUrlToBase64(url).then(function(base64){
+      var charName = prefix + (idx + 1);
+      characters.push({
+        name: charName,
+        role: role,
+        desc: '',
+        hp: hp,
+        ai: ai,
+        img: base64,
+        created: Date.now() + idx
+      });
+      success.push({name: charName, url: url});
+      updateProgress();
+      processNext(idx + 1);
+    }).catch(function(err){
+      failed.push({url: url, err: err.message || '未知错误'});
+      updateProgress();
+      processNext(idx + 1);
+    });
+  }
+  
+  processNext(0);
+}
+</script>
+</body>
+</html>

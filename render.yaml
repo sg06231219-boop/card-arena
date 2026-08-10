@@ -1,0 +1,13 @@
+# Render 部署配置 - 卡牌竞技场
+services:
+  - type: web
+    name: card-arena
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ZHIPUAI_API_KEY
+        sync: false
+    healthCheckPath: /api/health
+    autoDeploy: true

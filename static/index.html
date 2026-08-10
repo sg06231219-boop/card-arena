@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>卡牌竞技场</title>
+<style>
+:root{
+--bg:#060818;--bg2:#0d1126;--bg3:#131838;
+--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.08);
+--text:#e2e8f0;--muted:#64748b;
+--accent:#7c5cfa;--cyan:#22d3ee;--green:#10b981;--red:#ef4444;--orange:#f59e0b;--pink:#ec4899;--gold:#fbbf24;
+--fire:#f97316;--ice:#38bdf8;--thunder:#a855f7;--nature:#22c55e;
+--r-common:#94a3b8;--r-rare:#22d3ee;--r-epic:#a855f7;--r-legend:#fbbf24;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);user-select:none;-webkit-tap-highlight-color:transparent}
+#particle-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* === Layout === */
+#app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;max-width:1100px;margin:0 auto}
+#top-bar{flex-shrink:0;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(6,8,24,.6);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.top-logo{font-size:15px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.tab-bar{display:flex;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:2px;flex:1;max-width:520px}
+.tab-btn{flex:1;padding:6px 8px;border-radius:8px;border:none;cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);background:transparent;transition:all .2s;white-space:nowrap}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:#fff;background:linear-gradient(135deg,var(--accent),var(--cyan))}
+.coins-mini{font-size:12px;font-weight:700;color:var(--gold);white-space:nowrap}
+
+/* === Game Area === */
+#game-area{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.tab-panel{display:none;flex:1;flex-direction:column;overflow:hidden}
+.tab-panel.active{display:flex}
+
+/* === Arena Layout === */
+#tab-arena{padding:4px 8px;gap:4px}
+
+/* Enemy zone (top 25%) */
+.enemy-zone{flex-shrink:0;min-height:100px;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 8px}
+.combatant-row{display:flex;align-items:center;gap:8px}
+.avatar-box{width:44px;height:44px;border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;background:var(--bg2)}
+.avatar-box.enemy{border-color:var(--red)}
+.avatar-box.player{border-color:var(--green)}
+.hp-block{flex:1;min-width:0}
+.hp-name-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px}
+.pname{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.php{font-size:1.1rem;font-weight:800;font-family:monospace}
+.php.enemy{color:var(--red)}
+.php.player{color:var(--green)}
+.hp-bar{height:16px;background:rgba(255,255,255,.06);border-radius:8px;overflow:hidden;position:relative;border:1px solid var(--border)}
+.hp-fill{height:100%;border-radius:8px;transition:width .4s cubic-bezier(.4,0,.2,1);position:relative}
+.hp-fill.player{background:linear-gradient(90deg,#059669,#10b981,#34d399)}
+.hp-fill.enemy{background:linear-gradient(90deg,#dc2626,#ef4444,#f87171)}
+.hp-fill.flash{animation:hpFlash .4s ease}
+@keyframes hpFlash{0%,100%{filter:brightness(1)}50%{filter:brightness(2) saturate(2)}}
+.hp-shield{position:absolute;right:0;top:0;bottom:0;background:rgba(34,211,238,.4);border-radius:0 8px 8px 0;transition:width .3s}
+.hp-num-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+.energy-row{display:flex;align-items:center;gap:3px;margin-top:2px}
+.energy-label{font-size:10px;color:var(--muted);width:22px}
+.energy-crystal{width:12px;height:14px;clip-path:polygon(50% 0%,100% 35%,100% 70%,50% 100%,0% 70%,0% 35%);background:rgba(255,255,255,.08);border:1px solid var(--border);transition:all .3s}
+.energy-crystal.full{background:linear-gradient(135deg,var(--accent),#9d7ffe);box-shadow:0 0 6px rgba(124,92,250,.5)}
+.energy-crystal.max{background:linear-gradient(135deg,var(--gold),#fde68a);box-shadow:0 0 8px rgba(251,191,36,.6)}
+.status-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;min-height:18px}
+.status-chip{display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:600}
+.status-chip.burn{background:rgba(249,115,22,.15);color:var(--fire)}
+.status-chip.freeze{background:rgba(56,189,248,.15);color:var(--ice)}
+.status-chip.stun{background:rgba(168,85,247,.15);color:var(--thunder)}
+.status-chip.potion{background:rgba(34,197,94,.15);color:var(--nature)}
+.status-chip.atk-up{background:rgba(239,68,68,.15);color:var(--red)}
+.status-chip.def-up{background:rgba(34,211,238,.15);color:var(--cyan)}
+.status-chip.combo{background:rgba(236,72,153,.15);color:var(--pink)}
+
+/* Battlefield (middle 35%) */
+.battlefield{flex:1;min-height:60px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:8px;margin:2px 8px;backdrop-filter:blur(8px);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.battlefield::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(124,92,250,.04),rgba(34,211,238,.02));pointer-events:none}
+.bf-flash{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .3s}
+.bf-flash.fire{background:radial-gradient(circle,rgba(249,115,22,.3),transparent 70%)}
+.bf-flash.ice{background:radial-gradient(circle,rgba(56,189,248,.3),transparent 70%)}
+.bf-flash.thunder{background:radial-gradient(circle,rgba(168,85,247,.3),transparent 70%)}
+.bf-flash.nature{background:radial-gradient(circle,rgba(34,197,94,.3),transparent 70%)}
+.bf-flash.active{opacity:1;animation:bfFlash .6s ease}
+@keyframes bfFlash{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+.bf-crit-flash{position:absolute;inset:0;background:radial-gradient(circle,rgba(251,191,36,.4),transparent 60%);opacity:0;pointer-events:none}
+.bf-crit-flash.active{animation:critFlash .5s ease}
+@keyframes critFlash{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+.battle-text{text-align:center;font-size:14px;line-height:1.5;position:relative;z-index:1}
+.battle-text .dmg{color:var(--red);font-weight:700;font-size:1.2rem}
+.battle-text .heal{color:var(--green);font-weight:700;font-size:1.2rem}
+.battle-text .shield{color:var(--cyan);font-weight:700;font-size:1.2rem}
+.battle-text .crit{color:var(--gold);font-weight:700}
+.battle-text .miss{color:var(--muted);font-style:italic}
+.battle-text .combo{color:var(--pink);font-weight:700}
+.battle-anim{animation:battlePulse .4s ease}
+@keyframes battlePulse{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
+
+/* Damage float numbers */
+.dmg-float{position:absolute;font-size:1.4rem;font-weight:800;pointer-events:none;z-index:10;animation:dmgFloat 1.2s ease-out forwards;text-shadow:0 2px 4px rgba(0,0,0,.8)}
+.dmg-float.dmg{color:var(--red)}
+.dmg-float.heal{color:var(--green)}
+.dmg-float.shield{color:var(--cyan)}
+.dmg-float.crit{color:var(--gold);font-size:1.8rem}
+@keyframes dmgFloat{0%{opacity:0;transform:translateY(0) scale(.5)}20%{opacity:1;transform:translateY(-10px) scale(1.2)}100%{opacity:0;transform:translateY(-50px) scale(1)}}
+
+/* Screen shake */
+.screen-shake{animation:screenShake .4s ease}
+@keyframes screenShake{0%,100%{transform:translate(0,0)}25%{transform:translate(-4px,2px)}50%{transform:translate(4px,-2px)}75%{transform:translate(-2px,3px)}}
+
+/* Player zone (bottom 40%) */
+.player-zone{flex-shrink:0;display:flex;flex-direction:column;gap:3px;padding:4px 8px}
+.enemy-hand{display:flex;gap:4px;justify-content:center;min-height:28px;flex-shrink:0}
+.enemy-card-back{width:24px;height:32px;border-radius:4px;background:linear-gradient(135deg,var(--accent),#5b3fb8);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:.6rem;animation:cardDeal .4s ease backwards}
+@keyframes cardDeal{from{transform:translateY(-20px) rotate(-10deg);opacity:0}to{transform:translateY(0) rotate(0);opacity:1}}
+
+.hand-zone{flex-shrink:0}
+.hand-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.hand-label .title{font-size:12px;font-weight:700;color:var(--cyan)}
+.hand-label .info{font-size:10px;color:var(--muted)}
+.hand-cards{display:flex;gap:6px;justify-content:center;flex-wrap:nowrap;min-height:100px;overflow-x:auto;overflow-y:hidden;padding:2px;scrollbar-width:thin}
+.hand-cards::-webkit-scrollbar{height:4px}
+.hand-cards::-webkit-scrollbar-thumb{background:var(--accent);border-radius:2px}
+
+.rune-card{width:78px;height:108px;border-radius:10px;cursor:pointer;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:6px;border:2px solid;font-size:12px;flex-shrink:0;animation:cardDeal .3s ease backwards}
+.rune-card:hover{transform:translateY(-12px) scale(1.06) rotate(-2deg);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.rune-card.disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+.rune-card.disabled:hover{transform:none!important;box-shadow:none!important}
+.rune-card.playing{animation:cardPlay .5s ease forwards}
+@keyframes cardPlay{0%{transform:translateY(0) scale(1)}50%{transform:translateY(-40px) scale(1.1)}100%{transform:translateY(-100px) scale(.5);opacity:0}}
+.rune-cost{position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:2}
+.rune-icon{font-size:1.6rem;text-align:center;margin:4px 0}
+.rune-name{font-size:10px;font-weight:600;text-align:center}
+.rune-desc{font-size:8px;text-align:center;color:var(--muted);line-height:1.2}
+.rune-card.fire{border-color:var(--fire);background:linear-gradient(135deg,rgba(249,115,22,.12),rgba(249,115,22,.04))}
+.rune-card.fire .rune-cost{background:var(--fire)}
+.rune-card.ice{border-color:var(--ice);background:linear-gradient(135deg,rgba(56,189,248,.12),rgba(56,189,248,.04))}
+.rune-card.ice .rune-cost{background:var(--ice)}
+.rune-card.thunder{border-color:var(--thunder);background:linear-gradient(135deg,rgba(168,85,247,.12),rgba(168,85,247,.04))}
+.rune-card.thunder .rune-cost{background:var(--thunder)}
+.rune-card.nature{border-color:var(--nature);background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04))}
+.rune-card.nature .rune-cost{background:var(--nature)}
+.rune-card.neutral{border-color:var(--muted);background:linear-gradient(135deg,rgba(100,116,139,.12),rgba(100,116,139,.04))}
+.rune-card.neutral .rune-cost{background:var(--muted)}
+
+/* Controls */
+.controls{display:flex;justify-content:center;gap:6px;flex-shrink:0;padding:2px 0}
+.btn{padding:7px 18px;border-radius:10px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s}
+.btn-pri{background:linear-gradient(135deg,var(--accent),var(--cyan));color:#fff}
+.btn-pri:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(124,92,250,.3)}
+.btn-pri:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-sec{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.btn-sec:hover{border-color:var(--accent)}
+.btn-sec:disabled{opacity:.4;cursor:not-allowed}
+
+/* Right floating panel */
+.side-panel{position:absolute;top:50px;right:8px;width:160px;max-height:60vh;overflow-y:auto;background:rgba(6,8,24,.7);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:5;font-size:11px;scrollbar-width:thin}
+.side-panel::-webkit-scrollbar{width:4px}
+.side-panel::-webkit-scrollbar-thumb{background:var(--accent);border-radius:2px}
+.side-panel .sp-title{font-size:11px;font-weight:700;color:var(--gold);margin-bottom:3px}
+.level-info{font-size:11px;color:var(--muted);margin-bottom:4px}
+.level-info .lvl{font-size:13px;font-weight:700;color:var(--gold)}
+.log-area{max-height:150px;overflow-y:auto;font-size:10px;font-family:monospace;line-height:1.5;scrollbar-width:thin}
+.log-area::-webkit-scrollbar{width:4px}
+.log-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.log-line{padding:1px 0}
+.log-player{color:var(--cyan)}
+.log-enemy{color:var(--red)}
+.log-system{color:var(--muted)}
+.log-crit{color:var(--gold);font-weight:700}
+
+/* Element hint */
+.element-hint{font-size:10px;color:var(--muted);text-align:center;padding:3px 6px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin:2px 0}
+.element-hint .e{font-weight:700}
+.element-hint .fire{color:var(--fire)}
+.element-hint .ice{color:var(--ice)}
+.element-hint .thunder{color:var(--thunder)}
+.element-hint .nature{color:var(--nature)}
+
+/* Game over overlay */
+.game-over{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:2000}
+.game-over.active{display:flex;animation:goAppear .3s ease}
+@keyframes goAppear{from{opacity:0}to{opacity:1}}
+.game-over-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px;text-align:center;max-width:360px;animation:goCardPop .5s cubic-bezier(.4,0,.2,1)}
+@keyframes goCardPop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+.game-over-card h2{font-size:1.8rem;margin-bottom:6px}
+.game-over-card.win h2{color:var(--green)}
+.game-over-card.lose h2{color:var(--red)}
+.game-over-card p{color:var(--muted);margin:6px 0;font-size:13px}
+.go-avatar{font-size:3rem;margin:8px 0}
+
+/* Fireworks canvas */
+#fireworks-canvas{position:fixed;inset:0;z-index:1999;pointer-events:none;display:none}
+#fireworks-canvas.active{display:block}
+
+/* Loading */
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:3000;flex-direction:column;gap:12px}
+#loading.hidden{display:none}
+.load-card{width:60px;height:84px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:1.8rem;animation:loadCard 1s ease-in-out infinite}
+@keyframes loadCard{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-15px) rotate(5deg)}}
+.load-text{font-size:14px;color:var(--muted);font-weight:600}
+
+/* === Gacha === */
+#tab-gacha{padding:8px;overflow-y:auto}
+.gacha-container{max-width:560px;margin:0 auto;width:100%}
+.gacha-header{text-align:center;margin:8px 0}
+.coins-display{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;background:var(--card);border:1px solid var(--gold);border-radius:16px;font-size:1rem;font-weight:700;color:var(--gold)}
+.draw-area{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin:8px 0;text-align:center}
+.draw-cards{display:flex;gap:12px;justify-content:center;margin:14px 0;flex-wrap:wrap;perspective:1000px}
+.flip-card{width:100px;height:140px;cursor:pointer;position:relative;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.4,0,.2,1)}
+.flip-card.flipped{transform:rotateY(180deg)}
+.flip-card-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;border:2px solid}
+.flip-card-back{background:linear-gradient(135deg,var(--accent),#5b3fb8);border-color:var(--accent);font-size:2.4rem;color:rgba(255,255,255,.3)}
+.flip-card-front{transform:rotateY(180deg);background:var(--bg2)}
+.flip-card-front.rarity-common{border-color:var(--r-common);box-shadow:0 0 8px rgba(148,163,184,.3)}
+.flip-card-front.rarity-rare{border-color:var(--r-rare);box-shadow:0 0 12px rgba(34,211,238,.4)}
+.flip-card-front.rarity-epic{border-color:var(--r-epic);box-shadow:0 0 16px rgba(168,85,247,.5)}
+.flip-card-front.rarity-legend{border-color:var(--r-legend);box-shadow:0 0 20px rgba(251,191,36,.6);animation:legendGlow 1s ease-in-out infinite alternate}
+@keyframes legendGlow{to{box-shadow:0 0 30px rgba(251,191,36,.8)}}
+.flip-card-front .card-icon{font-size:2rem;margin:6px 0}
+.flip-card-front .card-name{font-size:12px;font-weight:700;text-align:center}
+.flip-card-front .card-rarity{font-size:9px;margin-top:3px;padding:1px 6px;border-radius:6px;font-weight:600}
+.rarity-common .card-rarity{background:rgba(148,163,184,.15);color:var(--r-common)}
+.rarity-rare .card-rarity{background:rgba(34,211,238,.15);color:var(--r-rare)}
+.rarity-epic .card-rarity{background:rgba(168,85,247,.15);color:var(--r-epic)}
+.rarity-legend .card-rarity{background:rgba(251,191,36,.15);color:var(--r-legend)}
+.draw-result{margin:8px 0;padding:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;text-align:center;font-size:13px;min-height:32px}
+.collection-info{text-align:center;margin:8px 0;font-size:12px;color:var(--muted)}
+.collection-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;margin:8px 0}
+.collection-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;text-align:center;font-size:10px;position:relative;overflow:hidden}
+.collection-item.owned.rarity-common{border-color:var(--r-common)}
+.collection-item.owned.rarity-rare{border-color:var(--r-rare)}
+.collection-item.owned.rarity-epic{border-color:var(--r-epic)}
+.collection-item.owned.rarity-legend{border-color:var(--r-legend);animation:legendGlow 2s ease-in-out infinite alternate}
+.collection-item.locked{opacity:.3;filter:grayscale(1)}
+.ci-icon{font-size:1.4rem}
+.ci-name{font-size:9px;margin-top:2px;font-weight:600}
+.ci-count{position:absolute;top:2px;right:4px;font-size:9px;font-weight:700;color:var(--gold)}
+
+/* === Character === */
+#tab-train{padding:8px;overflow-y:auto}
+.char-container{max-width:560px;margin:0 auto;width:100%}
+.char-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin:8px 0}
+.char-header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.char-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0;border:2px solid var(--accent)}
+.char-info{flex:1}
+.char-info .char-name{font-size:1.1rem;font-weight:700}
+.char-info .char-class{font-size:12px;color:var(--muted)}
+.char-info .char-lvl{font-size:13px;color:var(--gold);font-weight:600}
+.exp-bar-wrap{margin:6px 0}
+.exp-bar{height:10px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden;border:1px solid var(--border)}
+.exp-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:5px;transition:width .5s}
+.exp-text{font-size:10px;color:var(--muted);text-align:center;margin-top:2px}
+.char-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0}
+.stat-box{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:6px 10px;text-align:center}
+.stat-label{font-size:10px;color:var(--muted)}
+.stat-value{font-size:1rem;font-weight:700;color:var(--accent)}
+.stat-value.hp{color:var(--green)}
+.stat-value.energy{color:var(--gold)}
+.stat-value.win{color:var(--cyan)}
+.stat-value.lose{color:var(--red)}
+.equip-section{margin:8px 0}
+.equip-title{font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:6px}
+.equip-slots{display:flex;gap:6px;flex-wrap:wrap}
+.equip-slot{width:68px;height:86px;border:2px dashed var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-size:10px;color:var(--muted);position:relative}
+.equip-slot:hover{border-color:var(--accent);color:var(--accent)}
+.equip-slot.filled{border-style:solid;border-color:var(--accent);background:rgba(124,92,250,.06)}
+.slot-type{font-size:8px;text-transform:uppercase;margin-bottom:2px}
+.slot-icon{font-size:1.3rem}
+.slot-name{font-size:9px;font-weight:600;text-align:center;margin-top:2px}
+.slot-remove{position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;font-size:10px;display:none;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--bg2)}
+.equip-slot.filled:hover .slot-remove{display:flex}
+.equip-pool{margin:8px 0}
+.equip-pool-title{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.equip-pool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:5px;max-height:180px;overflow-y:auto;padding:2px}
+.equip-pool-item{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:5px;text-align:center;font-size:9px;cursor:pointer;transition:all .2s;position:relative}
+.equip-pool-item:hover{border-color:var(--accent);transform:translateY(-2px)}
+.equip-pool-item.equipped{opacity:.4;pointer-events:none}
+.ep-icon{font-size:1.2rem}
+.ep-name{font-weight:600;margin-top:2px}
+
+/* === Pokedex === */
+#tab-pokedex{padding:8px;overflow-y:auto}
+.pokedex-container{max-width:560px;margin:0 auto;width:100%}
+.pokedex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:8px 0}
+.pokedex-card{background:var(--card);border:2px solid var(--border);border-radius:12px;padding:10px;text-align:center;position:relative;overflow:hidden}
+.pokedex-card.owned{border-color:var(--accent)}
+.pokedex-card.locked{opacity:.4;filter:grayscale(1)}
+.pokedex-card .pd-icon{font-size:2rem;margin:4px 0}
+.pokedex-card .pd-name{font-size:13px;font-weight:700}
+.pokedex-card .pd-desc{font-size:10px;color:var(--muted);margin-top:2px}
+.pokedex-card .pd-cost{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.pokedex-card.fire{border-color:var(--fire)}
+.pokedex-card.ice{border-color:var(--ice)}
+.pokedex-card.thunder{border-color:var(--thunder)}
+.pokedex-card.nature{border-color:var(--nature)}
+.pokedex-card.neutral{border-color:var(--muted)}
+
+/* === Achievements === */
+#tab-achievements{padding:8px;overflow-y:auto}
+.ach-container{max-width:560px;margin:0 auto;width:100%}
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:8px 0}
+.ach-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;transition:all .2s}
+.ach-card.unlocked{border-color:var(--gold);box-shadow:0 0 10px rgba(251,191,36,.2)}
+.ach-card.locked{opacity:.5}
+.ach-icon{font-size:1.8rem;margin:4px 0}
+.ach-name{font-size:12px;font-weight:700}
+.ach-desc{font-size:10px;color:var(--muted);margin-top:2px}
+.ach-progress{font-size:10px;color:var(--cyan);margin-top:4px;font-weight:600}
+
+/* === Leaderboard === */
+.lb-container{max-width:560px;margin:0 auto;width:100%}
+.lb-list{display:flex;flex-direction:column;gap:4px;margin:8px 0}
+.lb-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px}
+.lb-rank{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.lb-rank.gold{background:rgba(251,191,36,.2);color:var(--gold)}
+.lb-rank.silver{background:rgba(148,163,184,.2);color:var(--r-common)}
+.lb-rank.bronze{background:rgba(217,119,6,.2);color:var(--orange)}
+.lb-info{flex:1;font-size:12px}
+.lb-info .lb-level{font-weight:700}
+.lb-info .lb-detail{font-size:10px;color:var(--muted)}
+
+/* Talent modal */
+.talent-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:2500}
+.talent-overlay.active{display:flex}
+.talent-card-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:24px;max-width:420px;text-align:center}
+.talent-card-box h3{font-size:1.2rem;margin-bottom:12px;color:var(--gold)}
+.talent-choices{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.talent-choice{width:120px;padding:12px 8px;background:var(--card);border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .2s;text-align:center}
+.talent-choice:hover{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 4px 16px rgba(251,191,36,.2)}
+.talent-choice .tc-icon{font-size:1.8rem;margin:4px 0}
+.talent-choice .tc-name{font-size:12px;font-weight:700;color:var(--gold)}
+.talent-choice .tc-desc{font-size:10px;color:var(--muted);margin-top:4px}
+
+/* Mobile */
+@media(max-width:600px){
+.rune-card{width:64px;height:88px;font-size:10px}
+.rune-card .rune-icon{font-size:1.3rem}
+.rune-card .rune-name{font-size:9px}
+.rune-card .rune-desc{font-size:7px}
+.side-panel{width:130px;font-size:10px;top:46px}
+.avatar-box{width:36px;height:36px;font-size:1.1rem}
+.php{font-size:.9rem}
+.tab-btn{font-size:10px;padding:5px 4px}
+.top-logo{font-size:13px}
+}
+@media(max-width:400px){
+.side-panel{display:none}
+}
+</style>
+
+<canvas id="particles" style="position:fixed;inset:0;z-index:-1;pointer-events:none"></canvas>
+<style>
+/* 伤害飘字 */
+.float-text{position:absolute;font-size:2rem;font-weight:800;pointer-events:none;animation:floatUp 1.2s ease-out forwards;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+.float-text.dmg{color:#ef4444}
+.float-text.heal{color:#10b981}
+.float-text.shield{color:#22d3ee}
+.float-text.crit{color:#fbbf24;font-size:2.5rem}
+.float-text.miss{color:#64748b;font-style:italic}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}50%{opacity:1;transform:translateY(-40px) scale(1.2)}100%{opacity:0;transform:translateY(-80px) scale(1)}}
+/* 出牌飞行动画 */
+.card-flying{animation:cardFly .5s ease-in forwards}
+@keyframes cardFly{0%{transform:translateY(0) scale(1)}100%{transform:translateY(-120px) scale(1.3) rotate(10deg);opacity:0}}
+/* 屏幕震动 */
+.screen-shake{animation:shake .4s ease}
+@keyframes shake{0%,100%{transform:translate(0)}25%{transform:translate(-4px,2px)}50%{transform:translate(4px,-2px)}75%{transform:translate(-2px,4px)}}
+/* 暴击闪光 */
+.crit-flash{position:fixed;inset:0;background:radial-gradient(circle,rgba(251,191,36,.3),transparent 60%);pointer-events:none;z-index:9999;animation:flashOut .4s ease-out forwards}
+@keyframes flashOut{0%{opacity:1}100%{opacity:0}}
+/* HP条受击闪烁 */
+.hp-flash{animation:hpFlash .3s ease}
+@keyframes hpFlash{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}50%{box-shadow:0 0 20px 4px rgba(239,68,68,.6)}}
+/* 能量水晶 */
+.energy-crystal{width:16px;height:16px;background:linear-gradient(135deg,#7c5cfa,#22d3ee);clip-path:polygon(50% 0,100% 38%,82% 100%,18% 100%,0 38%);transition:all .3s;filter:drop-shadow(0 0 4px rgba(124,92,250,.5))}
+.energy-crystal.empty{background:rgba(255,255,255,.06);filter:none}
+.energy-crystal.max{background:linear-gradient(135deg,#fbbf24,#f97316);filter:drop-shadow(0 0 6px rgba(251,191,36,.6))}
+/* 元素背景闪烁 */
+.battlefield.fire-flash{background:radial-gradient(ellipse at center,rgba(249,115,22,.15),transparent 70%)}
+.battlefield.ice-flash{background:radial-gradient(ellipse at center,rgba(56,189,248,.15),transparent 70%)}
+.battlefield.thunder-flash{background:radial-gradient(ellipse at center,rgba(168,85,247,.15),transparent 70%)}
+.battlefield.nature-flash{background:radial-gradient(ellipse at center,rgba(34,197,94,.15),transparent 70%)}
+/* 胜利烟花 */
+.firework{position:fixed;width:4px;height:4px;border-radius:50%;pointer-events:none;z-index:9998}
+/* 卡牌悬浮倾斜 */
+.rune-card{transform:perspective(600px) rotateY(0)}
+.hand-cards .rune-card:nth-child(odd){transform:perspective(600px) rotateY(-5deg) translateY(4px)}
+.hand-cards .rune-card:nth-child(even){transform:perspective(600px) rotateY(5deg) translateY(4px)}
+.hand-cards .rune-card:hover{transform:perspective(600px) rotateY(0) translateY(-12px) scale(1.08)!important}
+</style>
+</head>
+<body>
+<canvas id="particle-canvas"></canvas>
+<canvas id="fireworks-canvas"></canvas>
+
+<div id="loading">
+<div class="load-card">🃏</div>
+<div class="load-text">卡牌竞技场加载中...</div>
+</div>
+
+<div id="app">
+<!-- Top bar -->
+<div id="top-bar">
+<span class="top-logo">⚡ 卡牌竞技场</span>
+<div class="tab-bar">
+<button class="tab-btn active" data-tab="arena">⚔️ 竞技场</button>
+<button class="tab-btn" data-tab="gacha">🎴 抽卡</button>
+<button class="tab-btn" data-tab="train">📊 养成</button>
+<button class="tab-btn" data-tab="pokedex">📖 图鉴</button>
+<button class="tab-btn" data-tab="achievements">🏆 成就</button>
+</div>
+<span class="coins-mini">🪙 <span id="coin-count">100</span></span>
+</div>
+
+<!-- Game area -->
+<div id="game-area">
+
+<!-- ========== Arena ========== -->
+<div class="tab-panel active" id="tab-arena">
+<!-- Enemy zone -->
+<div class="enemy-zone">
+<div class="combatant-row">
+<div class="avatar-box enemy" id="enemy-avatar">👾</div>
+<div class="hp-block">
+<div class="hp-name-row">
+<span class="pname" id="enemy-name">暗影术士</span>
+<span class="php enemy" id="enemy-hp-num">30/30</span>
+</div>
+<div class="hp-bar"><div class="hp-fill enemy" id="enemy-hp-bar" style="width:100%"><div class="hp-shield" id="enemy-shield" style="width:0%"></div><div class="hp-num-text" id="enemy-hp-text">30</div></div></div>
+<div class="energy-row"><span class="energy-label">MP</span><span id="enemy-energy"></span></div>
+<div class="status-row" id="enemy-status"></div>
+</div>
+</div>
+</div>
+
+<!-- Battlefield -->
+<div class="battlefield" id="battlefield">
+<div class="bf-flash" id="bf-flash"></div>
+<div class="bf-crit-flash" id="bf-crit-flash"></div>
+<div class="battle-text" id="battle-text">点击"开始战斗"开始</div>
+</div>
+
+<!-- Enemy hand -->
+<div class="enemy-hand" id="enemy-hand"></div>
+
+<!-- Player zone -->
+<div class="player-zone">
+<div class="combatant-row">
+<div class="avatar-box player">🧙</div>
+<div class="hp-block">
+<div class="hp-name-row">
+<span class="pname">你</span>
+<span class="php player" id="player-hp-num">30/30</span>
+</div>
+<div class="hp-bar"><div class="hp-fill player" id="player-hp-bar" style="width:100%"><div class="hp-shield" id="player-shield" style="width:0%"></div><div class="hp-num-text" id="player-hp-text">30</div></div></div>
+<div class="energy-row"><span class="energy-label">MP</span><span id="player-energy"></span></div>
+<div class="status-row" id="player-status"></div>
+</div>
+</div>
+
+<div class="element-hint">
+<span class="e fire">🔥火</span>→<span class="e ice">❄️冰</span>→<span class="e thunder">⚡雷</span>→<span class="e fire">🔥火</span> · 克制+50%伤害
+</div>
+
+<div class="hand-zone">
+<div class="hand-label">
+<span class="title">📜 手牌</span>
+<span class="info" id="hand-info">牌堆:0 · 丢弃:0</span>
+</div>
+<div class="hand-cards" id="player-hand"></div>
+</div>
+
+<div class="controls">
+<button class="btn btn-pri" id="start-btn" onclick="startGame()">🏃 开始战斗</button>
+<button class="btn btn-sec" id="end-turn-btn" onclick="endTurn()" disabled>⏭️ 结束回合</button>
+<button class="btn btn-sec" onclick="resetGame()">🔄 重置</button>
+</div>
+</div>
+</div><!-- /arena -->
+
+<!-- ========== Gacha ========== -->
+<div class="tab-panel" id="tab-gacha">
+<div class="gacha-container">
+<div class="gacha-header">
+<div class="coins-display">🪙 <span id="coin-count-2">100</span> 金币</div>
+</div>
+<div class="draw-area">
+<div class="draw-result" id="draw-result">✨ 每次抽卡花费10金币，三选一！</div>
+<div class="draw-cards" id="draw-cards-area"></div>
+<div class="controls">
+<button class="btn btn-pri" onclick="startDraw(false)" id="draw-btn">🎴 抽卡(10🪙)</button>
+<button class="btn btn-sec" onclick="startDraw(true)" id="free-draw-btn">🎁 每日免费</button>
+</div>
+<div class="collection-info" id="collection-info">图鉴：0/0</div>
+</div>
+<div class="equip-pool-title" style="margin-top:12px">📖 卡牌图鉴</div>
+<div class="collection-grid" id="collection-grid"></div>
+</div>
+</div><!-- /gacha -->
+
+<!-- ========== Train ========== -->
+<div class="tab-panel" id="tab-train">
+<div class="char-container">
+<div class="char-panel">
+<div class="char-header">
+<div class="char-avatar">🧙</div>
+<div class="char-info">
+<div class="char-name" id="char-name">法师</div>
+<div class="char-class">元素法师</div>
+<div class="char-lvl" id="char-lvl">Lv.1</div>
+</div>
+</div>
+<div class="exp-bar-wrap">
+<div class="exp-bar"><div class="exp-fill" id="exp-fill" style="width:0%"></div></div>
+<div class="exp-text" id="exp-text">EXP: 0/10</div>
+</div>
+<div class="char-stats">
+<div class="stat-box"><div class="stat-label">❤️ 生命值</div><div class="stat-value hp" id="stat-hp">30</div></div>
+<div class="stat-box"><div class="stat-label">⚡ 能量上限</div><div class="stat-value energy" id="stat-energy">1</div></div>
+<div class="stat-box"><div class="stat-label">🏆 胜场</div><div class="stat-value win" id="stat-win">0</div></div>
+<div class="stat-box"><div class="stat-label">💀 败场</div><div class="stat-value lose" id="stat-lose">0</div></div>
+</div>
+<div class="equip-section">
+<div class="equip-title">⚔️ 装备槽 (3攻击+2辅助)</div>
+<div class="equip-slots" id="equip-slots"></div>
+</div>
+<div class="equip-pool">
+<div class="equip-pool-title">📦 可装备卡牌</div>
+<div class="equip-pool-grid" id="equip-pool-grid"></div>
+</div>
+</div>
+<div class="controls">
+<button class="btn btn-pri" onclick="goArenaFromTrain()">⚔️ 前往竞技场</button>
+<button class="btn btn-sec" onclick="resetCharacter()">🔄 重置角色</button>
+</div>
+</div>
+</div><!-- /train -->
+
+<!-- ========== Pokedex ========== -->
+<div class="tab-panel" id="tab-pokedex">
+<div class="pokedex-container">
+<div class="equip-pool-title" style="text-align:center;font-size:14px;margin:8px 0">📖 卡牌图鉴</div>
+<div class="pokedex-grid" id="pokedex-grid"></div>
+</div>
+</div><!-- /pokedex -->
+
+<!-- ========== Achievements ========== -->
+<div class="tab-panel" id="tab-achievements">
+<div class="ach-container">
+<div class="equip-pool-title" style="text-align:center;font-size:14px;margin:8px 0">🏆 成就 · 排行榜</div>
+<div class="lb-container" style="margin-bottom:12px">
+<div class="equip-pool-title">📊 最高纪录</div>
+<div class="lb-list" id="lb-list"></div>
+</div>
+<div class="equip-pool-title">🏆 成就列表</div>
+<div class="ach-grid" id="ach-grid"></div>
+</div>
+</div><!-- /achievements -->
+
+</div><!-- /game-area -->
+
+<!-- Side panel (floating) -->
+<div class="side-panel" id="side-panel">
+<div class="sp-title">📊 关卡信息</div>
+<div class="level-info">
+<span class="lvl" id="lvl-text">第 1 关</span><br>
+<span id="lvl-desc">基础对手</span>
+</div>
+<div class="sp-title">📜 战斗日志</div>
+<div class="log-area" id="log-area"></div>
+</div>
+
+</div><!-- /app -->
+
+<!-- Game over -->
+<div class="game-over" id="game-over">
+<div class="game-over-card" id="game-over-card">
+<div class="go-avatar" id="go-avatar">🏆</div>
+<h2 id="go-title">胜利！</h2>
+<p id="go-desc"></p>
+<div style="margin-top:12px">
+<button class="btn btn-pri" onclick="nextLevel()" id="go-next">🔄 下一关</button>
+<button class="btn btn-sec" onclick="resetGame()" style="margin-left:6px">🔄 重新开始</button>
+</div>
+</div>
+</div>
+
+<!-- Talent modal -->
+<div class="talent-overlay" id="talent-overlay">
+<div class="talent-card-box">
+<h3>✨ 选择天赋</h3>
+<p style="font-size:12px;color:var(--muted);margin-bottom:12px">每3级可选1个天赋</p>
+<div class="talent-choices" id="talent-choices"></div>
+</div>
+</div>
+
+<script>
+// ========== 粒子背景 ==========
+var canvas=document.getElementById('particles');
+var ctx=canvas.getContext('2d');
+var particles=[];
+function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight}
+resizeCanvas();window.addEventListener('resize',resizeCanvas);
+function initParticles(){particles=[];for(var i=0;i<60;i++){particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3,r:Math.random()*2+0.5,c:Math.random()>0.5?'rgba(124,92,250,':'rgba(34,211,238,',a:Math.random()*0.4+0.1})}}
+initParticles();
+function animParticles(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(var i=0;i<particles.length;i++){
+    var p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0)p.x=canvas.width;if(p.x>canvas.width)p.x=0;
+    if(p.y<0)p.y=canvas.height;if(p.y>canvas.height)p.y=0;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.c+p.a+')';ctx.fill();
+  }
+  requestAnimationFrame(animParticles);
+}
+animParticles();
+
+// ========== 伤害飘字 ==========
+function floatText(text,type,target){
+  var el=document.createElement('div');
+  el.className='float-text '+type;
+  el.textContent=text;
+  var bf=document.getElementById('battlefield');
+  var rect=bf.getBoundingClientRect();
+  el.style.left=(rect.left+rect.width/2-20+(target==='enemy'?-60:60))+'px';
+  el.style.top=(rect.top+rect.height/2)+'px';
+  document.body.appendChild(el);
+  setTimeout(function(){el.remove()},1200);
+}
+
+// ========== 暴击闪光+屏幕震动 ==========
+function critEffect(){
+  var flash=document.createElement('div');
+  flash.className='crit-flash';
+  document.body.appendChild(flash);
+  setTimeout(function(){flash.remove()},400);
+  var game=document.querySelector('.container');
+  game.classList.add('screen-shake');
+  setTimeout(function(){game.classList.remove('screen-shake')},400);
+}
+
+// ========== 胜利烟花 ==========
+function fireworks(){
+  var colors=['#fbbf24','#7c5cfa','#22d3ee','#10b981','#ec4899'];
+  for(var i=0;i<30;i++){
+    setTimeout(function(){
+      var fw=document.createElement('div');
+      fw.className='firework';
+      fw.style.left=(Math.random()*window.innerWidth)+'px';
+      fw.style.top=(Math.random()*window.innerHeight*0.6)+'px';
+      fw.style.background=colors[Math.floor(Math.random()*colors.length)];
+      fw.style.boxShadow='0 0 8px '+fw.style.background;
+      fw.style.transition='all 1.5s ease-out';
+      document.body.appendChild(fw);
+      setTimeout(function(){fw.style.transform='translate('+(Math.random()*100-50)+'px,'+(Math.random()*100-50)+'px) scale(0)';fw.style.opacity='0'},50);
+      setTimeout(function(){fw.remove()},1600);
+    },i*80);
+  }
+}
+
+// ========== 元素背景闪烁 ==========
+function elementFlash(element){
+  var bf=document.getElementById('battlefield');
+  bf.className='battlefield '+element+'-flash';
+  setTimeout(function(){bf.className='battlefield'},600);
+}
+
+// ========== Card Definitions ==========
+var CARD_POOL = [
+  {id:'fire_bolt',name:'火焰箭',icon:'🔥',cost:2,type:'attack',element:'fire',dmg:5,desc:'5点火伤',rarity:'common'},
+  {id:'ice_shard',name:'冰锥术',icon:'❄️',cost:2,type:'attack',element:'ice',dmg:5,desc:'5点冰伤',rarity:'common'},
+  {id:'thunder',name:'闪电术',icon:'⚡',cost:3,type:'attack',element:'thunder',dmg:8,desc:'8点雷伤',rarity:'rare'},
+  {id:'vine_whip',name:'藤蔓鞭',icon:'🌿',cost:2,type:'attack',element:'nature',dmg:6,desc:'6点自然伤',rarity:'common'},
+  {id:'meteor',name:'陨石术',icon:'🌌',cost:5,type:'attack',element:'fire',dmg:15,desc:'15点火伤',rarity:'legend'},
+  {id:'blizzard',name:'暴风雪',icon:'🌨️',cost:5,type:'attack',element:'ice',dmg:12,desc:'12冰伤+冻结',rarity:'legend'},
+  {id:'chain_lightning',name:'连锁闪电',icon:'🌩️',cost:4,type:'attack',element:'thunder',dmg:10,desc:'10点雷伤',rarity:'epic'},
+  {id:'fireball',name:'火球术',icon:'🔥',cost:3,type:'attack',element:'fire',dmg:8,desc:'8点火伤',rarity:'rare'},
+  {id:'frost_nova',name:'霜冻新星',icon:'🧊',cost:3,type:'attack',element:'ice',dmg:7,desc:'7冰伤+减速',rarity:'rare'},
+  {id:'thunderbolt',name:'雷霆击',icon:'⚡',cost:4,type:'attack',element:'thunder',dmg:12,desc:'12点雷伤',rarity:'epic'},
+  {id:'earth_spike',name:'地刺术',icon:'🌋',cost:3,type:'attack',element:'nature',dmg:9,desc:'9自然伤',rarity:'rare'},
+  {id:'ice_barrier',name:'冰盾术',icon:'🛡️',cost:2,type:'shield',element:'ice',val:8,desc:'+8护甲',rarity:'common'},
+  {id:'fire_wall',name:'火焰墙',icon:'🧱',cost:3,type:'shield',element:'fire',val:10,desc:'+10护甲',rarity:'rare'},
+  {id:'thunder_skin',name:'雷霆皮肤',icon:'⚡',cost:3,type:'shield',element:'thunder',val:6,desc:'+6护甲+反伤',reflect:true,rarity:'epic'},
+  {id:'heal',name:'治疗术',icon:'💚',cost:2,type:'heal',element:'nature',val:6,desc:'恢复6HP',rarity:'common'},
+  {id:'regrowth',name:'重生',icon:'🌷',cost:4,type:'heal',element:'nature',val:12,desc:'恢复12HP',rarity:'rare'},
+  {id:'meditate',name:'冥想',icon:'🧘',cost:0,type:'energy',element:'neutral',val:3,desc:'+3能量上限',rarity:'rare'},
+  {id:'rage',name:'狂暴',icon:'😡',cost:1,type:'buff',element:'fire',val:3,desc:'+3攻击力3回合',rarity:'rare'},
+  {id:'freeze_spell',name:'冰冻术',icon:'🧊',cost:3,type:'debuff',element:'ice',val:1,desc:'冻结1回合',rarity:'epic'},
+  {id:'weakness',name:'虚弱',icon:'😔',cost:2,type:'debuff',element:'nature',val:3,desc:'对手-3攻击2回合',rarity:'rare'},
+  {id:'poison_cloud',name:'毒云术',icon:'☠️',cost:3,type:'debuff',element:'nature',val:3,desc:'中毒3回合',rarity:'epic'},
+];
+
+var ENEMIES = [
+  {name:'暗影术士',avatar:'👾',hp:30,ai:1,desc:'基础对手，随机出牌'},
+  {name:'魔魂骑士',avatar:'💀',hp:35,ai:2,desc:'智能AI，优先克制'},
+  {name:'冰封法师',avatar:'🔐',hp:40,ai:3,desc:'喜欢冻结+暴风雪连招'},
+  {name:'炎之女王',avatar:'🔥',hp:45,ai:4,desc:'火系法术大师'},
+  {name:'雷神降临',avatar:'⚡',hp:55,ai:5,desc:'最终BOSS，全能型AI'},
+];
+
+var TALENTS = [
+  {id:'fire_heart',name:'火焰之心',icon:'🔥',desc:'火系伤害+30%'},
+  {id:'ice_soul',name:'冰霜之魂',icon:'❄️',desc:'冰系牌5%冻结概率'},
+  {id:'thunder_power',name:'雷霆万钧',icon:'⚡',desc:'雷系暴击率+15%'},
+  {id:'nature_force',name:'自然之力',icon:'🌿',desc:'自然治疗量+50%'},
+  {id:'element_affinity',name:'元素亲和',icon:'✨',desc:'克制伤害额外+25%'},
+];
+
+var ACHIEVEMENTS = [
+  {id:'first_win',name:'初出茅庐',desc:'首次胜利',icon:'🥇'},
+  {id:'win_5_streak',name:'五连胜',desc:'连续5次胜利',icon:'🔥'},
+  {id:'win_10_streak',name:'十连胜',desc:'连续10次胜利',icon:'👑'},
+  {id:'first_crit',name:'幸运一击',desc:'首次暴击',icon:'⚡'},
+  {id:'combo_5',name:'连击大师',desc:'达成5连击',icon:'💥'},
+  {id:'collect_10',name:'收藏家',desc:'收集10张卡牌',icon:'📚'},
+  {id:'collect_20',name:'卡牌大师',desc:'收集20张卡牌',icon:'📖'},
+  {id:'collect_all',name:'完美图鉴',desc:'收集全部卡牌',icon:'🏅'},
+  {id:'lvl_5',name:'成长之路',desc:'角色达到Lv.5',icon:'🌟'},
+  {id:'lvl_10',name:'大师之路',desc:'角色达到Lv.10',icon:'🏆'},
+];
+
+// ========== Game State ==========
+var state = {
+  level: parseInt(localStorage.getItem('ca_level')||'1'),
+  turn:'player',
+  inGame:false,
+  log:[],
+  player:{hp:30,maxHp:30,energy:1,maxEnergy:1,shield:0,hand:[],deck:[],discard:[],buffs:{atkUp:0,defUp:0},status:{burn:0,freeze:0,stun:0},comboElement:null,comboCount:0},
+  enemy:{hp:30,maxHp:30,energy:1,maxEnergy:1,shield:0,hand:[],deck:[],discard:[],buffs:{atkUp:0,defUp:0},status:{burn:0,freeze:0,stun:0},comboElement:null,comboCount:0},
+};
+
+// ========== Tab Switching ==========
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.toggle('active',b.dataset.tab===name)});
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active')});
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='gacha')renderGacha();
+  if(name==='train')renderCharacter();
+  if(name==='pokedex')renderPokedex();
+  if(name==='achievements')renderAchievements();
+}
+
+document.querySelectorAll('.tab-btn').forEach(function(b){
+  b.addEventListener('click',function(){switchTab(b.dataset.tab)});
+});
+
+// ========== LocalStorage Helpers ==========
+function lsGet(k,def){try{var v=localStorage.getItem(k);return v===null?def:v}catch(e){return def}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function getCoins(){return parseInt(lsGet('ca_coins','100'))}
+function setCoins(v){lsSet('ca_coins',String(v));updateCoinDisplay()}
+function getCollection(){try{return JSON.parse(lsGet('ca_collection','{}'))}catch(e){return{}}}
+function setCollection(c){lsSet('ca_collection',JSON.stringify(c))}
+function getDailyDraw(){return lsGet('ca_daily_draw','')}
+function setDailyDraw(d){lsSet('ca_daily_draw',d)}
+function getCustomCards(){try{return JSON.parse(lsGet('ca_custom_cards','[]'))}catch(e){return[]}}
+function setCustomCards(c){lsSet('ca_custom_cards',JSON.stringify(c))}
+function getCardConfig(){try{return JSON.parse(lsGet('ca_card_config','{}'))}catch(e){return{}}}
+function getLevelConfig(){try{return JSON.parse(lsGet('ca_level_config','[]'))}catch(e){return[]}}
+function getTalents(){try{return JSON.parse(lsGet('ca_talents','[]'))}catch(e){return[]}}
+function setTalents(t){lsSet('ca_talents',JSON.stringify(t))}
+function getAchievements(){try{return JSON.parse(lsGet('ca_achievements','{}'))}catch(e){return{}}}
+function setAchievements(a){lsSet('ca_achievements',JSON.stringify(a))}
+function getLeaderboard(){try{return JSON.parse(lsGet('ca_leaderboard','[]'))}catch(e){return[]}}
+function setLeaderboard(l){lsSet('ca_leaderboard',JSON.stringify(l))}
+function getWinStreak(){return parseInt(lsGet('ca_win_streak','0'))}
+function setWinStreak(v){lsSet('ca_win_streak',String(v))}
+
+function getAllCards(){
+  var custom=getCustomCards();
+  var pool=CARD_POOL.slice();
+  var config=getCardConfig();
+  custom.forEach(function(c){
+    pool.push({
+      id:c.id||('custom_'+c.name),name:c.name||'自定义',icon:c.icon||'🌟',
+      cost:c.cost||2,type:c.type||'attack',element:c.element||'neutral',
+      dmg:c.dmg||5,val:c.val||0,desc:c.desc||'自定义卡牌',rarity:c.rarity||'common'
+    });
+  });
+  // Apply config overrides
+  pool.forEach(function(c){
+    var cfg=config[c.id];
+    if(cfg){
+      if(cfg.cost!==undefined)c.cost=cfg.cost;
+      if(cfg.dmg!==undefined)c.dmg=cfg.dmg;
+      if(cfg.val!==undefined)c.val=cfg.val;
+    }
+  });
+  return pool;
+}
+
+// ========== Character ==========
+function getCharacter(){
+  var def={name:'法师',class:'元素法师',level:1,exp:0,maxExp:10,hp:30,maxHp:30,maxEnergy:1,wins:0,losses:0,equipped:[null,null,null,null,null]};
+  try{var c=JSON.parse(lsGet('ca_character','null'));if(c)return Object.assign(def,c)}catch(e){}
+  return def;
+}
+function setCharacter(c){lsSet('ca_character',JSON.stringify(c))}
+function getExpForLevel(lvl){return 10+lvl*5}
+
+function addExp(amount){
+  var c=getCharacter();
+  c.exp+=amount;
+  while(c.exp>=c.maxExp){
+    c.exp-=c.maxExp;
+    c.level++;
+    c.maxHp+=5;
+    c.hp=c.maxHp;
+    if(c.level%5===0)c.maxEnergy=Math.min(10,c.maxEnergy+1);
+    c.maxExp=getExpForLevel(c.level);
+    // Talent choice every 3 levels
+    if(c.level%3===0){
+      showTalentChoice();
+    }
+  }
+  setCharacter(c);
+  checkAchievements();
+}
+
+function showTalentChoice(){
+  var existing=getTalents();
+  var available=TALENTS.filter(function(t){return existing.indexOf(t.id)<0});
+  if(available.length===0)return;
+  var choices=[];
+  while(choices.length<3&&available.length>0){
+    var idx=Math.floor(Math.random()*available.length);
+    choices.push(available.splice(idx,1)[0]);
+  }
+  var overlay=document.getElementById('talent-overlay');
+  var html='';
+  choices.forEach(function(t){
+    html+='<div class="talent-choice" onclick="selectTalent(\''+t.id+'\')">'+
+      '<div class="tc-icon">'+t.icon+'</div>'+
+      '<div class="tc-name">'+t.name+'</div>'+
+      '<div class="tc-desc">'+t.desc+'</div></div>';
+  });
+  document.getElementById('talent-choices').innerHTML=html;
+  overlay.classList.add('active');
+}
+
+function selectTalent(id){
+  var talents=getTalents();
+  talents.push(id);
+  setTalents(talents);
+  document.getElementById('talent-overlay').classList.remove('active');
+}
+
+function hasTalent(id){return getTalents().indexOf(id)>=0}
+
+function getTalentMultiplier(element,type){
+  var mult=1;
+  if(element==='fire'&&hasTalent('fire_heart')&&type==='attack')mult*=1.3;
+  if(element==='nature'&&hasTalent('nature_force')&&type==='heal')mult*=1.5;
+  return mult;
+}
+
+function getCounterMultiplier(){
+  if(hasTalent('element_affinity'))return 1.75; // 1.5 * 1.25 ≈ but we apply separately
+  return 1.5;
+}
+
+function getCritRate(){
+  var base=0.1;
+  if(hasTalent('thunder_power'))return base+0.15;
+  return base;
+}
+
+function recordBattleResult(win){
+  var c=getCharacter();
+  if(win){
+    c.wins++;
+    var streak=getWinStreak()+1;
+    setWinStreak(streak);
+    addExp(15+state.level*5);
+    // Record leaderboard
+    var lb=getLeaderboard();
+    var hpPercent=Math.round(state.player.hp/state.player.maxHp*100);
+    lb.push({level:state.level,streak:streak,hpPercent:hpPercent,turns:state.log.length,date:Date.now()});
+    lb.sort(function(a,b){return b.level-a.level||b.hpPercent-a.hpPercent});
+    lb=lb.slice(0,10);
+    setLeaderboard(lb);
+  }else{
+    c.losses++;
+    setWinStreak(0);
+    addExp(5);
+  }
+  setCharacter(c);
+  checkAchievements();
+}
+
+// ========== Gacha ==========
+function rollRarity(){
+  var r=Math.random();
+  if(r<0.02)return'legend';
+  if(r<0.10)return'epic';
+  if(r<0.40)return'rare';
+  return'common';
+}
+function getCardByRarity(rarity){
+  var all=getAllCards();
+  var filtered=all.filter(function(c){return(c.rarity||'common')===rarity});
+  if(filtered.length===0)filtered=all;
+  return filtered[Math.floor(Math.random()*filtered.length)];
+}
+var gachaState={drawing:false,selected:-1,cards:[],realIdx:-1,realCard:null,realRarity:''};
+
+function startDraw(isFree){
+  if(gachaState.drawing)return;
+  var today=new Date().toISOString().slice(0,10);
+  if(isFree){
+    if(getDailyDraw()===today){showDrawResult('今天已经免费抽过了！');return}
+  }else{
+    if(getCoins()<10){showDrawResult('金币不足！需要10金币');return}
+    setCoins(getCoins()-10);
+  }
+  if(isFree)setDailyDraw(today);
+  gachaState.drawing=true;
+  gachaState.selected=-1;
+  var realRarity=rollRarity();
+  var realCard=getCardByRarity(realRarity);
+  gachaState.cards=[realCard];
+  for(var i=1;i<3;i++){
+    var fakeRarity=rollRarity();
+    gachaState.cards.push(getCardByRarity(fakeRarity));
+  }
+  gachaState.cards.sort(function(){return Math.random()-0.5});
+  gachaState.realIdx=gachaState.cards.indexOf(realCard);
+  gachaState.realCard=realCard;
+  gachaState.realRarity=realRarity;
+  document.getElementById('draw-btn').disabled=true;
+  document.getElementById('free-draw-btn').disabled=true;
+  showDrawResult('✨ 请选择一张卡牌！');
+  renderDrawCards();
+}
+
+function renderDrawCards(){
+  var area=document.getElementById('draw-cards-area');
+  area.innerHTML='';
+  gachaState.cards.forEach(function(card,i){
+    var div=document.createElement('div');
+    div.className='flip-card';
+    div.style.animationDelay=(i*0.15)+'s';
+    div.onclick=function(){selectDrawCard(i)};
+    div.innerHTML=
+      '<div class="flip-card-face flip-card-back">🃏</div>'+
+      '<div class="flip-card-face flip-card-front rarity-'+(card.rarity||'common')+'">'+
+        '<div class="card-icon">'+card.icon+'</div>'+
+        '<div class="card-name">'+card.name+'</div>'+
+        '<div class="card-rarity">'+rarityName(card.rarity)+'</div>'+
+      '</div>';
+    area.appendChild(div);
+  });
+}
+
+function rarityName(r){return{common:'普通',rare:'稀有',epic:'史诗',legend:'传说'}[r]||'普通'}
+
+function selectDrawCard(idx){
+  if(!gachaState.drawing||gachaState.selected>=0)return;
+  gachaState.selected=idx;
+  document.querySelectorAll('.flip-card').forEach(function(c){c.classList.add('flipped')});
+  var realCard=gachaState.realCard;
+  var col=getCollection();
+  var key=realCard.id||realCard.name;
+  if(!col[key])col[key]={count:0,card:realCard};
+  col[key].count++;
+  setCollection(col);
+  // Win coins bonus for rarity
+  var bonus={common:5,rare:15,epic:30,legend:100}[gachaState.realRarity]||5;
+  setCoins(getCoins()+bonus);
+  setTimeout(function(){
+    var msg='';
+    if(idx===gachaState.realIdx){
+      msg='🎉 恭喜！抽到【'+rarityName(gachaState.realRarity)+'】'+realCard.icon+' '+realCard.name+'！+'+bonus+'金币';
+    }else{
+      msg='💫 实际抽到【'+rarityName(gachaState.realRarity)+'】'+realCard.icon+' '+realCard.name+' +'+bonus+'金币';
+    }
+    showDrawResult(msg);
+    gachaState.drawing=false;
+    document.getElementById('draw-btn').disabled=false;
+    updateFreeDrawBtn();
+    renderCollection();
+    checkAchievements();
+    updateCoinDisplay();
+  },800);
+}
+
+function showDrawResult(msg){document.getElementById('draw-result').innerHTML=msg}
+function updateCoinDisplay(){
+  document.getElementById('coin-count').textContent=getCoins();
+  var c2=document.getElementById('coin-count-2');
+  if(c2)c2.textContent=getCoins();
+}
+function updateFreeDrawBtn(){
+  var today=new Date().toISOString().slice(0,10);
+  var btn=document.getElementById('free-draw-btn');
+  if(getDailyDraw()===today){btn.disabled=true;btn.textContent='✅ 今日已抽'}
+  else{btn.disabled=false;btn.textContent='🎁 每日免费'}
+}
+function renderGacha(){updateCoinDisplay();updateFreeDrawBtn();renderCollection()}
+function renderCollection(){
+  var all=getAllCards();
+  var col=getCollection();
+  var owned=0;
+  var html='';
+  all.forEach(function(card){
+    var key=card.id||card.name;
+    var isOwned=!!col[key];
+    if(isOwned)owned++;
+    var rarity=card.rarity||'common';
+    html+='<div class="collection-item '+(isOwned?'owned rarity-'+rarity:'locked')+'">'+
+      '<div class="ci-icon">'+(isOwned?card.icon:'❓')+'</div>'+
+      '<div class="ci-name">'+(isOwned?card.name:'???')+'</div>'+
+      (isOwned?'<div class="ci-count">×'+col[key].count+'</div>':'')+
+    '</div>';
+  });
+  document.getElementById('collection-grid').innerHTML=html;
+  document.getElementById('collection-info').textContent='图鉴：'+owned+'/'+all.length;
+}
+
+// ========== Character Render ==========
+function renderCharacter(){
+  var c=getCharacter();
+  document.getElementById('char-name').textContent=c.name;
+  document.getElementById('char-lvl').textContent='Lv.'+c.level;
+  document.getElementById('exp-fill').style.width=(c.exp/c.maxExp*100)+'%';
+  document.getElementById('exp-text').textContent='EXP: '+c.exp+'/'+c.maxExp;
+  document.getElementById('stat-hp').textContent=c.maxHp;
+  document.getElementById('stat-energy').textContent=c.maxEnergy;
+  document.getElementById('stat-win').textContent=c.wins;
+  document.getElementById('stat-lose').textContent=c.losses;
+  renderEquipSlots();
+  renderEquipPool();
+}
+function renderEquipSlots(){
+  var c=getCharacter();
+  var slotTypes=['攻击','攻击','攻击','辅助','辅助'];
+  var html='';
+  for(var i=0;i<5;i++){
+    var eq=c.equipped[i];
+    if(eq){
+      html+='<div class="equip-slot filled" onclick="unequipCard('+i+')">'+
+        '<div class="slot-type">'+slotTypes[i]+'</div>'+
+        '<div class="slot-icon">'+eq.icon+'</div>'+
+        '<div class="slot-name">'+eq.name+'</div>'+
+        '<div class="slot-remove" onclick="event.stopPropagation();unequipCard('+i+')">✕</div></div>';
+    }else{
+      html+='<div class="equip-slot"><div class="slot-type">'+slotTypes[i]+'</div><div class="slot-icon">➕</div><div class="slot-name">空槽</div></div>';
+    }
+  }
+  document.getElementById('equip-slots').innerHTML=html;
+}
+function renderEquipPool(){
+  var col=getCollection();
+  var c=getCharacter();
+  var equippedIds=c.equipped.filter(function(e){return e}).map(function(e){return e.id});
+  var html='';
+  var hasCards=false;
+  Object.keys(col).forEach(function(key){
+    var item=col[key];
+    var card=item.card;
+    var isEquipped=equippedIds.indexOf(card.id)>=0;
+    var validSlots=getValidSlots(card.type,c);
+    var canEquip=validSlots.length>0&&!isEquipped;
+    hasCards=true;
+    html+='<div class="equip-pool-item '+(isEquipped?'equipped':'')+'" '+(canEquip?'onclick="equipCard(\''+card.id+'\')"':'')+'>'+
+      '<div class="ep-icon">'+card.icon+'</div>'+
+      '<div class="ep-name">'+card.name+'</div>'+
+      '<div style="font-size:8px;color:var(--muted)">'+rarityName(card.rarity)+'</div></div>';
+  });
+  if(!hasCards)html='<div style="text-align:center;color:var(--muted);padding:16px">还没有卡牌，去抽卡吧！</div>';
+  document.getElementById('equip-pool-grid').innerHTML=html;
+}
+function getValidSlots(cardType,charProgress){
+  var slots=[];
+  var slotTypes=['attack','attack','attack','support','support'];
+  for(var i=0;i<5;i++){
+    if(charProgress.equipped[i])continue;
+    if(slotTypes[i]==='attack'&&(cardType==='attack'||cardType==='debuff'||cardType==='buff'))slots.push(i);
+    if(slotTypes[i]==='support'&&(cardType==='shield'||cardType==='heal'||cardType==='energy'))slots.push(i);
+  }
+  return slots;
+}
+function equipCard(cardId){
+  var c=getCharacter();
+  var col=getCollection();
+  var card=null;
+  for(var key in col){if(col[key].card.id===cardId){card=col[key].card;break}}
+  if(!card)return;
+  var validSlots=getValidSlots(card.type,c);
+  if(validSlots.length===0){alert('没有可用的装备槽！');return}
+  c.equipped[validSlots[0]]={id:card.id,name:card.name,icon:card.icon,type:card.type,element:card.element,cost:card.cost,dmg:card.dmg,val:card.val,desc:card.desc,reflect:card.reflect};
+  setCharacter(c);renderCharacter();
+}
+function unequipCard(slotIdx){
+  var c=getCharacter();c.equipped[slotIdx]=null;
+  setCharacter(c);renderCharacter();
+}
+function resetCharacter(){
+  if(!confirm('确定重置角色？所有进度将丢失！'))return;
+  localStorage.removeItem('ca_character');
+  localStorage.removeItem('ca_talents');
+  renderCharacter();
+}
+function goArenaFromTrain(){switchTab('arena')}
+
+// ========== Pokedex ==========
+function renderPokedex(){
+  var all=getAllCards();
+  var col=getCollection();
+  var html='';
+  all.forEach(function(card){
+    var key=card.id||card.name;
+    var isOwned=!!col[key];
+    var el=card.element||'neutral';
+    html+='<div class="pokedex-card '+(isOwned?'owned '+el:'locked')+'">'+
+      '<div class="pd-cost">'+card.cost+'</div>'+
+      '<div class="pd-icon">'+(isOwned?card.icon:'❓')+'</div>'+
+      '<div class="pd-name">'+(isOwned?card.name:'???')+'</div>'+
+      '<div class="pd-desc">'+(isOwned?card.desc:'未收集')+'</div>'+
+    '</div>';
+  });
+  document.getElementById('pokedex-grid').innerHTML=html;
+}
+
+// ========== Achievements ==========
+function checkAchievements(){
+  var ach=getAchievements();
+  var col=getCollection();
+  var c=getCharacter();
+  var ownedCards=Object.keys(col).length;
+  var allCards=getAllCards().length;
+  var streak=getWinStreak();
+  var newAch=[];
+  if(!ach.first_win&&c.wins>=1){ach.first_win=true;newAch.push('初出茅庐')}
+  if(!ach.win_5_streak&&streak>=5){ach.win_5_streak=true;newAch.push('五连胜')}
+  if(!ach.win_10_streak&&streak>=10){ach.win_10_streak=true;newAch.push('十连胜')}
+  if(!ach.first_crit&&ach._first_crit){ach.first_crit=true;newAch.push('幸运一击')}
+  if(!ach.combo_5&&ach._combo_5){ach.combo_5=true;newAch.push('连击大师')}
+  if(!ach.collect_10&&ownedCards>=10){ach.collect_10=true;newAch.push('收藏家')}
+  if(!ach.collect_20&&ownedCards>=20){ach.collect_20=true;newAch.push('卡牌大师')}
+  if(!ach.collect_all&&ownedCards>=allCards&&allCards>0){ach.collect_all=true;newAch.push('完美图鉴')}
+  if(!ach.lvl_5&&c.level>=5){ach.lvl_5=true;newAch.push('成长之路')}
+  if(!ach.lvl_10&&c.level>=10){ach.lvl_10=true;newAch.push('大师之路')}
+  setAchievements(ach);
+  if(newAch.length>0){
+    setTimeout(function(){alert('🏆 解锁成就：'+newAch.join('、'))},500);
+  }
+}
+function renderAchievements(){
+  var ach=getAchievements();
+  var html='';
+  ACHIEVEMENTS.forEach(function(a){
+    var unlocked=!!ach[a.id];
+    html+='<div class="ach-card '+(unlocked?'unlocked':'locked')+'">'+
+      '<div class="ach-icon">'+(unlocked?a.icon:'🔒')+'</div>'+
+      '<div class="ach-name">'+a.name+'</div>'+
+      '<div class="ach-desc">'+a.desc+'</div></div>';
+  });
+  document.getElementById('ach-grid').innerHTML=html;
+  // Leaderboard
+  var lb=getLeaderboard();
+  var lbHtml='';
+  if(lb.length===0){
+    lbHtml='<div style="text-align:center;color:var(--muted);padding:12px;font-size:12px">暂无记录，去竞技场战斗吧！</div>';
+  }else{
+    lb.forEach(function(item,i){
+      var rankCls=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      lbHtml+='<div class="lb-item">'+
+        '<div class="lb-rank '+rankCls+'">'+(i+1)+'</div>'+
+        '<div class="lb-info"><div class="lb-level">第'+item.level+'关 · '+item.streak+'连胜</div>'+
+        '<div class="lb-detail">剩余HP:'+item.hpPercent+'% · '+item.turns+'回合</div></div></div>';
+    });
+  }
+  document.getElementById('lb-list').innerHTML=lbHtml;
+}
+
+// ========== Arena Game Logic ==========
+function startGame(){
+  var c=getCharacter();
+  var lvlConfig=getLevelConfig();
+  var enemyIdx=Math.min(state.level-1,ENEMIES.length-1);
+  var enemy=ENEMIES[enemyIdx];
+  // Apply custom level config if exists
+  if(lvlConfig[enemyIdx]){
+    enemy=Object.assign({},enemy,lvlConfig[enemyIdx]);
+  }
+  state.player.hp=c.maxHp;state.player.maxHp=c.maxHp;state.player.energy=1;state.player.maxEnergy=c.maxEnergy;state.player.shield=0;
+  state.player.hand=[];state.player.buffs={atkUp:0,defUp:0};state.player.status={burn:0,freeze:0,stun:0};state.player.comboElement=null;state.player.comboCount=0;
+  state.enemy={name:enemy.name,avatar:enemy.avatar||'👾',hp:enemy.hp,maxHp:enemy.hp,energy:1,maxEnergy:1,shield:0,hand:[],deck:[],discard:[],buffs:{atkUp:0,defUp:0},status:{burn:0,freeze:0,stun:0},comboElement:null,comboCount:0,ai:enemy.ai};
+  // Build deck with equipped cards
+  var equippedCards=c.equipped.filter(function(e){return e}).map(function(e){return JSON.parse(JSON.stringify(e))});
+  state.player.hand=equippedCards.slice(0,3);
+  state.player.deck=buildDeck(15);
+  state.enemy.deck=buildDeck(15);
+  while(state.player.hand.length<3)drawCard('player');
+  for(var i=0;i<3;i++)drawCard('enemy');
+  for(var i=0;i<2;i++)drawCard('enemy');
+  state.turn='player';state.inGame=true;state.log=[];
+  log('战斗开始！第'+state.level+'关 vs '+enemy.name,'system');
+  log('Lv.'+c.level+' HP:'+c.maxHp+' MP上限:'+c.maxEnergy,'system');
+  document.getElementById('enemy-avatar').textContent=enemy.avatar||'👾';
+  document.getElementById('enemy-name').textContent=enemy.name;
+  document.getElementById('end-turn-btn').disabled=false;
+  document.getElementById('start-btn').disabled=true;
+  document.getElementById('game-over').classList.remove('active');
+  render();
+}
+
+function buildDeck(n){
+  var deck=[];
+  var pool=getAllCards();
+  for(var i=0;i<n;i++)deck.push(JSON.parse(JSON.stringify(pool[Math.floor(Math.random()*pool.length)])));
+  return deck;
+}
+
+function drawCard(side){
+  var s=state[side];
+  if(s.deck.length===0){s.deck=s.discard.sort(function(){return Math.random()-0.5});s.discard=[]}
+  if(s.deck.length===0)return;
+  if(s.hand.length>=7)return;
+  s.hand.push(s.deck.pop());
+}
+
+function playCard(idx){
+  if(state.turn!=='player'||!state.inGame)return;
+  var card=state.player.hand[idx];
+  if(!card||state.player.energy<card.cost)return;
+  state.player.energy-=card.cost;
+  state.player.discard.push(card);
+  state.player.hand.splice(idx,1);
+  // Card play animation
+  var cardEl=document.querySelectorAll('.rune-card')[idx];
+  if(cardEl)cardEl.classList.add('playing');
+  setTimeout(function(){executeCardEffect(card,'player','enemy')},200);
+}
+
+function executeCardEffect(card,selfSide,targetSide){
+  var self=state[selfSide];
+  var target=state[targetSide];
+  var bt='';
+  var counterMult=1;
+  if(card.element&&card.type==='attack'){
+    var targetEl=target.comboElement;
+    if(targetEl){
+      if(isCounter(card.element,targetEl)){counterMult=getCounterMultiplier();bt+='<span class="crit">克制！</span> '}
+      else if(isCounter(targetEl,card.element)){counterMult=0.5;bt+='<span class="miss">被克制！</span> '}
+    }
+  }
+  var comboBonus=1;
+  if(card.type==='attack'){
+    if(self.comboElement===card.element){
+      self.comboCount++;
+      comboBonus=1+self.comboCount*0.2;
+      if(self.comboCount>=2)bt+='<span class="combo">🔥'+self.comboCount+'连击！</span> ';
+      if(self.comboCount>=5){var ach=getAchievements();ach._combo_5=true;setAchievements(ach);checkAchievements()}
+    }else{
+      self.comboElement=card.element;self.comboCount=1;
+    }
+  }
+  var critRate=getCritRate();
+  // Thunder talent adds crit for thunder cards
+  if(card.element==='thunder'&&hasTalent('thunder_power'))critRate+=0.15;
+  var crit=Math.random()<critRate;
+  var dodge=Math.random()<0.08;
+  // Talent multiplier
+  var talentMult=getTalentMultiplier(card.element,card.type);
+  
+  if(card.type==='attack'){
+    if(dodge){bt+='<span class="miss">闪避了！</span>'}
+    else{
+      var dmg=Math.round(card.dmg*counterMult*comboBonus*talentMult*(1+self.buffs.atkUp/10));
+      if(crit){dmg=Math.round(dmg*1.5);bt+='<span class="crit">⚡暴击！</span> ';triggerCritEffect()}
+      if(target.shield>0){var absorbed=Math.min(target.shield,dmg);target.shield-=absorbed;dmg-=absorbed;if(absorbed>0){bt+='<span class="shield">-'+absorbed+'护甲</span> ';showDmgFloat(targetSide,'-'+absorbed,'shield')}}
+      if(dmg>0){target.hp-=dmg;bt+='<span class="dmg">-'+dmg+'</span> ';showDmgFloat(targetSide,'-'+dmg,'dmg')}
+      if(card.id==='blizzard')target.status.freeze=1;
+      if(card.id==='frost_nova')target.status.freeze=1;
+      if(card.id==='chain_lightning'&&target.status.freeze>0){target.status.freeze=0;bt+='<span class="combo">冻结导电！</span> '}
+      // Ice talent: 5% freeze chance
+      if(card.element==='ice'&&hasTalent('ice_soul')&&Math.random()<0.05){target.status.freeze=1;bt+='<span class="freeze">冰冻！</span> '}
+      // Burn for fire cards (10% chance)
+      if(card.element==='fire'&&Math.random()<0.15){target.status.burn=2;bt+='<span class="burn">点燃！</span> '}
+      triggerElementFlash(card.element);
+    }
+    target.comboElement=card.element;
+  }else if(card.type==='shield'){
+    self.shield+=card.val;
+    bt+='<span class="shield">+'+card.val+'护甲</span>';
+    showDmgFloat(selfSide,'+'+card.val,'shield');
+    if(card.reflect)self.buffs.defUp=3;
+  }else if(card.type==='heal'){
+    var heal=Math.min(Math.round(card.val*talentMult),self.maxHp-self.hp);
+    self.hp+=heal;
+    bt+='<span class="heal">+'+heal+'HP</span>';
+    showDmgFloat(selfSide,'+'+heal,'heal');
+  }else if(card.type==='energy'){
+    self.maxEnergy=Math.min(10,self.maxEnergy+card.val);
+    self.energy+=card.val;
+    bt+='🔌 +'+card.val+'能量';
+  }else if(card.type==='buff'){
+    self.buffs.atkUp=3;
+    bt+='😡 攻击力提升';
+  }else if(card.type==='debuff'){
+    if(card.element==='ice')target.status.freeze=card.val;
+    else if(card.element==='nature'&&card.id==='poison_cloud')target.status.burn=card.val;
+    else target.buffs.atkUp=-card.val;
+    bt+='😔 对手被削弱';
+  }
+  
+  setBattleText(bt);
+  log((selfSide==='player'?'你':state.enemy.name)+'出了['+card.name+'] '+stripTags(bt),selfSide==='player'?'player':'enemy');
+  
+  if(crit){var ach=getAchievements();ach._first_crit=true;setAchievements(ach);checkAchievements()}
+  
+  if(target.hp<=0){
+    render();
+    if(selfSide==='player')win();else lose();
+    return;
+  }
+  render();
+}
+
+function endTurn(){
+  if(state.turn!=='player'||!state.inGame)return;
+  if(state.player.status.burn>0){state.player.hp-=2;state.player.status.burn--;showDmgFloat('player','-2','dmg');log('你受到烧伤-2','system')}
+  drawCard('player');
+  state.turn='enemy';
+  document.getElementById('end-turn-btn').disabled=true;
+  render();
+  if(state.player.hp<=0){lose();return}
+  setTimeout(enemyTurn,700);
+}
+
+function enemyTurn(){
+  if(!state.inGame)return;
+  if(state.enemy.status.freeze>0){
+    state.enemy.status.freeze--;
+    setBattleText('🧊 对手被冻结，跳过回合！');
+    log(state.enemy.name+'被冻结！','system');
+    state.turn='player';newTurn('player');
+    return;
+  }
+  var aiLevel=state.enemy.ai||1;
+  var playable=state.enemy.hand.filter(function(c){return c.cost<=state.enemy.energy});
+  if(playable.length>0){
+    var card;
+    if(aiLevel>=3){
+      var playerEl=state.player.comboElement;
+      var counter=playable.find(function(c){return c.type==='attack'&&playerEl&&isCounter(c.element,playerEl)});
+      card=counter||playable[Math.floor(Math.random()*playable.length)];
+    }else{
+      card=playable[Math.floor(Math.random()*playable.length)];
+    }
+    enemyPlayCard(card);
+  }else{
+    setBattleText(state.enemy.name+'无牌可出');
+  }
+  if(aiLevel>=2&&state.inGame){
+    setTimeout(function(){
+      if(!state.inGame)return;
+      playable=state.enemy.hand.filter(function(c){return c.cost<=state.enemy.energy});
+      if(playable.length>0&&Math.random()<0.5){
+        enemyPlayCard(playable[0]);
+        if(state.player.hp<=0){lose();return}
+        playable=state.enemy.hand.filter(function(c){return c.cost<=state.enemy.energy});
+        if(playable.length>0&&state.enemy.energy>=2&&Math.random()<0.3){
+          setTimeout(function(){if(!state.inGame)return;enemyPlayCard(playable[0]);finishEnemyTurn()},500);
+        }else{finishEnemyTurn()}
+      }else{finishEnemyTurn()}
+    },500);
+  }else{finishEnemyTurn()}
+}
+
+function enemyPlayCard(card){
+  var idx=state.enemy.hand.indexOf(card);
+  if(idx<0)return;
+  state.enemy.energy-=card.cost;
+  state.enemy.discard.push(card);
+  state.enemy.hand.splice(idx,1);
+  executeCardEffect(card,'enemy','player');
+}
+
+function finishEnemyTurn(){
+  if(!state.inGame)return;
+  if(state.player.status.burn>0){state.player.hp-=2;state.player.status.burn--;log('你受到烧伤-2','system');showDmgFloat('player','-2','dmg')}
+  drawCard('enemy');
+  if(state.player.hp<=0){lose();return}
+  state.turn='player';
+  newTurn('player');
+}
+
+function newTurn(side){
+  var s=state[side];
+  s.energy=s.maxEnergy=Math.min(10,s.maxEnergy+1);
+  if(s.buffs.atkUp>0)s.buffs.atkUp--;
+  if(s.buffs.defUp>0)s.buffs.defUp--;
+  if(side==='player'){document.getElementById('end-turn-btn').disabled=false;log('你的回合','system')}
+  render();
+}
+
+function isCounter(a,b){return(a==='fire'&&b==='ice')||(a==='ice'&&b==='thunder')||(a==='thunder'&&b==='fire')}
+
+function setBattleText(t){
+  var el=document.getElementById('battlefield');
+  var flash=el.querySelector('.bf-flash');
+  flash.className='bf-flash';
+  el.querySelector('.battle-text').innerHTML=t;
+  el.querySelector('.battle-text').classList.remove('battle-anim');
+  void el.querySelector('.battle-text').offsetWidth;
+  el.querySelector('.battle-text').classList.add('battle-anim');
+}
+
+function stripTags(s){return s.replace(/<[^>]+>/g,'')}
+
+function log(msg,type){
+  state.log.unshift('<span class="log-'+(type||'system')+'">'+msg+'</span>');
+  if(state.log.length>30)state.log.pop();
+  renderLog();
+}
+function renderLog(){document.getElementById('log-area').innerHTML=state.log.map(function(l){return'<div class="log-line">'+l+'</div>'}).join('')}
+
+// ========== Visual Effects ==========
+function showDmgFloat(side,text,type){
+  var el=side==='player'?document.querySelector('.player-zone'):document.querySelector('.enemy-zone');
+  if(!el)return;
+  var float=document.createElement('div');
+  float.className='dmg-float '+type;
+  float.textContent=text;
+  float.style.left=(40+Math.random()*20)+'%';
+  float.style.top='40%';
+  el.style.position='relative';
+  el.appendChild(float);
+  setTimeout(function(){float.remove()},1200);
+}
+
+function triggerElementFlash(element){
+  var flash=document.getElementById('bf-flash');
+  flash.className='bf-flash '+element;
+  void flash.offsetWidth;
+  flash.classList.add('active');
+  setTimeout(function(){flash.className='bf-flash'},600);
+}
+
+function triggerCritEffect(){
+  var flash=document.getElementById('bf-crit-flash');
+  flash.classList.remove('active');
+  void flash.offsetWidth;
+  flash.classList.add('active');
+  // Screen shake
+  var app=document.getElementById('app');
+  app.classList.remove('screen-shake');
+  void app.offsetWidth;
+  app.classList.add('screen-shake');
+  setTimeout(function(){app.classList.remove('screen-shake')},400);
+}
+
+// ========== Render ==========
+function render(){
+  var pHpPct=Math.max(0,state.player.hp/state.player.maxHp*100);
+  var eHpPct=Math.max(0,state.enemy.hp/state.enemy.maxHp*100);
+  document.getElementById('player-hp-bar').style.width=pHpPct+'%';
+  document.getElementById('enemy-hp-bar').style.width=eHpPct+'%';
+  document.getElementById('player-hp-text').textContent=Math.max(0,state.player.hp);
+  document.getElementById('enemy-hp-text').textContent=Math.max(0,state.enemy.hp);
+  document.getElementById('player-hp-num').textContent=Math.max(0,state.player.hp)+'/'+state.player.maxHp;
+  document.getElementById('enemy-hp-num').textContent=Math.max(0,state.enemy.hp)+'/'+state.enemy.maxHp;
+  document.getElementById('player-shield').style.width=(state.player.shield/state.player.maxHp*100)+'%';
+  document.getElementById('enemy-shield').style.width=(state.enemy.shield/state.enemy.maxHp*100)+'%';
+  document.getElementById('player-energy').innerHTML=renderEnergy(state.player);
+  document.getElementById('enemy-energy').innerHTML=renderEnergy(state.enemy);
+  document.getElementById('player-status').innerHTML=renderStatus(state.player);
+  document.getElementById('enemy-status').innerHTML=renderStatus(state.enemy);
+  var handEl=document.getElementById('player-hand');
+  handEl.innerHTML=state.player.hand.map(function(c,i){
+    var dis=state.player.energy<c.cost?' disabled':'';
+    return '<div class="rune-card '+c.element+dis+'" onclick="playCard('+i+')" style="animation-delay:'+(i*0.05)+'s">'+
+      '<div class="rune-cost">'+c.cost+'</div>'+
+      '<div class="rune-icon">'+c.icon+'</div>'+
+      '<div class="rune-name">'+c.name+'</div>'+
+      '<div class="rune-desc">'+c.desc+'</div></div>';
+  }).join('');
+  document.getElementById('enemy-hand').innerHTML=state.enemy.hand.map(function(){return'<div class="enemy-card-back">🃏</div>'}).join('');
+  document.getElementById('hand-info').textContent='牌堆:'+state.player.deck.length+' · 丢弃:'+state.player.discard.length;
+  document.getElementById('lvl-text').textContent='第 '+state.level+' 关';
+  var enemyIdx=Math.min(state.level-1,ENEMIES.length-1);
+  document.getElementById('lvl-desc').textContent=ENEMIES[enemyIdx].desc;
+}
+
+function renderEnergy(s){
+  var html='';
+  for(var i=0;i<10;i++){
+    var cls='energy-crystal';
+    if(i<s.energy)cls+=' full';
+    if(i<s.maxEnergy)cls+=' max';
+    html+='<div class="'+cls+'"></div>';
+  }
+  return html;
+}
+
+function renderStatus(s){
+  var html='';
+  if(s.status.burn>0)html+='<span class="status-chip burn">🔥烧伤'+s.status.burn+'</span>';
+  if(s.status.freeze>0)html+='<span class="status-chip freeze">🧊冻结'+s.status.freeze+'</span>';
+  if(s.status.stun>0)html+='<span class="status-chip stun">眩晕'+s.status.stun+'</span>';
+  if(s.buffs.atkUp>0)html+='<span class="status-chip atk-up">⚔️攻+'+s.buffs.atkUp+'</span>';
+  if(s.buffs.defUp>0)html+='<span class="status-chip def-up">🛡️反伤'+s.buffs.defUp+'</span>';
+  if(s.comboCount>=2)html+='<span class="status-chip combo">💥连击'+s.comboCount+'</span>';
+  return html;
+}
+
+function win(){
+  state.inGame=false;
+  document.getElementById('end-turn-btn').disabled=true;
+  document.getElementById('start-btn').disabled=false;
+  recordBattleResult(true);
+  var el=document.getElementById('game-over');
+  var card=el.querySelector('.game-over-card');
+  card.className='game-over-card win';
+  document.getElementById('go-avatar').textContent='🏆';
+  document.getElementById('go-title').textContent='胜利！';
+  var c=getCharacter();
+  document.getElementById('go-desc').textContent='击败'+state.enemy.name+'！获得'+(15+state.level*5)+'经验';
+  document.getElementById('go-next').textContent=state.level>=5?'🏆 通关重玩':'🔄 下一关';
+  el.classList.add('active');
+  log('🏆 你赢了！获得'+(15+state.level*5)+'经验','system');
+  triggerFireworks();
+}
+
+function lose(){
+  state.inGame=false;
+  document.getElementById('end-turn-btn').disabled=true;
+  document.getElementById('start-btn').disabled=false;
+  recordBattleResult(false);
+  var el=document.getElementById('game-over');
+  var card=el.querySelector('.game-over-card');
+  card.className='game-over-card lose';
+  document.getElementById('go-avatar').textContent='💀';
+  document.getElementById('go-title').textContent='败北了';
+  document.getElementById('go-desc').textContent='获得5经验，再来一次！';
+  document.getElementById('go-next').textContent='🔄 重新挑战';
+  el.classList.add('active');
+  log('💀 你输了，获得5经验','system');
+}
+
+function nextLevel(){
+  if(state.level<5){state.level++;lsSet('ca_level',String(state.level))}
+  else{state.level=1;lsSet('ca_level','1')}
+  document.getElementById('game-over').classList.remove('active');
+  startGame();
+}
+
+function resetGame(){
+  state.level=parseInt(lsGet('ca_level','1'));
+  document.getElementById('game-over').classList.remove('active');
+  startGame();
+}
+
+// ========== Particle Background ==========
+var particleCanvas,particleCtx,particles=[];
+function initParticles(){
+  particleCanvas=document.getElementById('particle-canvas');
+  particleCtx=particleCanvas.getContext('2d');
+  resizeParticles();
+  window.addEventListener('resize',resizeParticles);
+  for(var i=0;i<60;i++){
+    particles.push(createParticle());
+  }
+  animateParticles();
+}
+function resizeParticles(){
+  particleCanvas.width=window.innerWidth;
+  particleCanvas.height=window.innerHeight;
+}
+function createParticle(){
+  return{
+    x:Math.random()*particleCanvas.width,
+    y:Math.random()*particleCanvas.height,
+    r:Math.random()*2+0.5,
+    vx:(Math.random()-0.5)*0.3,
+    vy:-(Math.random()*0.5+0.1),
+    opacity:Math.random()*0.5+0.2,
+    color:Math.random()<0.5?'124,92,250':'34,211,238'
+  };
+}
+function animateParticles(){
+  particleCtx.clearRect(0,0,particleCanvas.width,particleCanvas.height);
+  particles.forEach(function(p){
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.y<-10){p.y=particleCanvas.height+10;p.x=Math.random()*particleCanvas.width}
+    if(p.x<-10)p.x=particleCanvas.width+10;
+    if(p.x>particleCanvas.width+10)p.x=-10;
+    particleCtx.beginPath();
+    particleCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    particleCtx.fillStyle='rgba('+p.color+','+p.opacity+')';
+    particleCtx.fill();
+  });
+  requestAnimationFrame(animateParticles);
+}
+
+// ========== Fireworks ==========
+var fwCanvas,fwCtx,fireworks=[],fwParticles=[];
+function initFireworks(){
+  fwCanvas=document.getElementById('fireworks-canvas');
+  fwCtx=fwCanvas.getContext('2d');
+  fwCanvas.width=window.innerWidth;
+  fwCanvas.height=window.innerHeight;
+}
+function triggerFireworks(){
+  fwCanvas.width=window.innerWidth;
+  fwCanvas.height=window.innerHeight;
+  fwCanvas.classList.add('active');
+  var count=0;
+  var interval=setInterval(function(){
+    launchFirework();
+    count++;
+    if(count>=8){clearInterval(interval);setTimeout(function(){fwCanvas.classList.remove('active');fireworks=[];fwParticles=[]},2000)}
+  },300);
+}
+function launchFirework(){
+  var x=Math.random()*fwCanvas.width*0.8+fwCanvas.width*0.1;
+  var y=fwCanvas.height;
+  var targetY=Math.random()*fwCanvas.height*0.4+50;
+  var color=['255,215,0','124,92,250','34,211,238','236,72,153','16,185,129'][Math.floor(Math.random()*5)];
+  fireworks.push({x:x,y:y,tx:x,ty:targetY,color:color});
+}
+function animateFireworks(){
+  if(!fwCanvas.classList.contains('active')){requestAnimationFrame(animateFireworks);return}
+  fwCtx.fillStyle='rgba(6,8,24,0.15)';
+  fwCtx.fillRect(0,0,fwCanvas.width,fwCanvas.height);
+  // Move rockets
+  for(var i=fireworks.length-1;i>=0;i--){
+    var fw=fireworks[i];
+    fw.y-=(fw.y-fw.ty)*0.08;
+    if(Math.abs(fw.y-fw.ty)<5){
+      // Explode
+      for(var j=0;j<30;j++){
+        var angle=(j/30)*Math.PI*2;
+        var speed=Math.random()*4+2;
+        fwParticles.push({x:fw.x,y:fw.y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,life:1,color:fw.color,r:Math.random()*2+1});
+      }
+      fireworks.splice(i,1);
+    }else{
+      fwCtx.beginPath();
+      fwCtx.arc(fw.x,fw.y,2,0,Math.PI*2);
+      fwCtx.fillStyle='rgba('+fw.color+',1)';
+      fwCtx.fill();
+    }
+  }
+  // Move particles
+  for(var i=fwParticles.length-1;i>=0;i--){
+    var p=fwParticles[i];
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.life-=0.02;
+    if(p.life<=0){fwParticles.splice(i,1);continue}
+    fwCtx.beginPath();
+    fwCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    fwCtx.fillStyle='rgba('+p.color+','+p.life+')';
+    fwCtx.fill();
+  }
+  requestAnimationFrame(animateFireworks);
+}
+
+// ========== Init ==========
+function init(){
+  initParticles();
+  initFireworks();
+  animateFireworks();
+  updateCoinDisplay();
+  render();
+  // Hide loading
+  setTimeout(function(){
+    document.getElementById('loading').classList.add('hidden');
+  },800);
+}
+
+// 3D card tilt effect
+document.addEventListener('mousemove',function(e){
+  var cards=document.querySelectorAll('.rune-card:not(.disabled):not(.playing)');
+  cards.forEach(function(card){
+    var rect=card.getBoundingClientRect();
+    var cx=rect.left+rect.width/2;
+    var cy=rect.top+rect.height/2;
+    var dx=(e.clientX-cx)/rect.width;
+    var dy=(e.clientY-cy)/rect.height;
+    if(Math.abs(dx)<2&&Math.abs(dy)<2){
+      card.style.transform='translateY(-8px) perspective(400px) rotateY('+dx*8+'deg) rotateX('+(-dy*8)+'deg)';
+    }else{
+      card.style.transform='';
+    }
+  });
+});
+
+init();
+</script>
+</body>
+</html>
